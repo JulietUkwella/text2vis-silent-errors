@@ -1,0 +1,5 @@
+Problem: The chart ranks countries by total cumulative reported COVID-19 deaths, not by deaths relative to population. Larger countries can have more deaths simply because they have more people, so this does not necessarily identify the country with the deadliest outbreak in terms of individual risk.
+
+There is also a comparison-date inconsistency: the code selects each country's latest available record, but those records may have different dates, making the cumulative totals less directly comparable.
+
+To improve the comparison, use cumulative deaths per 100,000 people to assess population-adjusted mortality, or clearly define “deadliest” as the highest total reported death toll. Also, align the observation dates where possible and acknowledge that reported deaths may differ from actual COVID-19 deaths.

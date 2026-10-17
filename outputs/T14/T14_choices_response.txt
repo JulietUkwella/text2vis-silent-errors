@@ -1,0 +1,42 @@
+## 1. Analytical choices and assumptions
+
+The question sounds straightforward, but several choices affect what the chart actually shows.
+
+| Analytical choice                   | Option selected                                         | Why                                                                                                                                                                           |
+| ----------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Which death measure?                | `total_deaths_per_million`                              | This represents cumulative reported COVID-19 deaths per million people. It answers how large the reported death toll has been, rather than how many deaths occurred recently. |
+| Totals or rates?                    | Deaths per million                                      | Countries have very different population sizes, so raw death totals would make direct comparisons difficult. The dataset already provides a population-normalized measure.    |
+| Which time period?                  | Each country's latest available non-missing observation | The word “latest” suggests using the newest usable data for each country rather than selecting an arbitrary historical period.                                                |
+| One common date or different dates? | Latest valid date for each country                      | This retains more countries if some have missing data on their most recent dates. The chart will display each observation's date so this difference is visible.               |
+| Which locations?                    | Locations with a recorded continent                     | This is a practical way to include country and territory records while excluding most aggregate records, such as the world total and regional groupings.                      |
+| How to handle missing values?       | Exclude rows with a missing date or death rate          | Missing values cannot be plotted meaningfully. A reported rate of zero, however, is valid and should not be removed.                                                          |
+| How to display the results?         | A horizontal bar chart sorted by death rate             | Horizontal bars make country names easier to read, while sorting makes it easier to compare countries and identify the highest reported rates.                                |
+
+### What could make this chart misleading?
+
+It is important to consider these limitations when interpreting the results:
+
+- Different reporting dates: One country's latest observation might be older than another's. The chart therefore compares each country's latest available figure, not necessarily figures measured on the same date.
+- Differences in reporting practices: Countries differ in how they identify, certify, and report COVID-19 deaths. Reported deaths may understate the true toll.
+- Cumulative versus recent deaths: `total_deaths_per_million` measures cumulative reported mortality. It does not measure the current death rate or recent deaths; `new_deaths_per_million` would address a different question.
+- Population normalization has limits: Deaths per million accounts for population size, but it does not adjust for age distribution, underlying health conditions, healthcare capacity, or other demographic differences.
+- Missing or incomplete data: Locations without a valid death-rate observation are omitted. Filtering on `continent` also excludes locations without a recorded continent and may include territories as well as sovereign countries.
+- Data revisions: Historical death totals and rates may change as authorities revise their reports. The chart reflects the figures in your saved CSV file, not necessarily the latest figures published online.
+
+For these reasons, I would describe the result as each country's latest available cumulative reported COVID-19 deaths per million people, rather than a definitive ranking of how severely COVID-19 affected each population.
+
+## 2. Python code using pandas and matplotlib
+
+The following code loads `owid-covid-data.csv`, selects the latest non-missing death-rate observation for each eligible location, and creates a sorted horizontal bar chart. The observation date is included beside each location, and each bar is labeled with its rate.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# --------------------------------------------------# 1. Load the dataset# --------------------------------------------------df = pd.read_csv("owid-covid-data.csv", low_memory=False)# Ensure dates and death rates have the correct data types.df["date"] = pd.to_datetime(df["date"], errors="coerce")df["total_deaths_per_million"] = pd.to_numeric(    df["total_deaths_per_million"],    errors="coerce")# --------------------------------------------------# 2. Select country and territory records# --------------------------------------------------# A missing continent is used as a practical indicator# of an aggregate location, such as World or a region.countries = df.loc[    df["continent"].notna()    & df["location"].notna()    & df["date"].notna()    & df["total_deaths_per_million"].notna(),    [        "location",        "date",        "total_deaths_per_million"    ]].copy()# --------------------------------------------------# 3. Find the latest valid observation per location# --------------------------------------------------# Filter missing rates first so that a missing value on# a later date does not replace an earlier valid value.latest = (    countries    .sort_values("date")    .groupby("location", sort=False)    .tail(1)
+```
+
+### How to interpret the chart
+
+Each bar represents a country's latest valid cumulative death rate per million people. Longer bars indicate a higher reported cumulative death toll relative to population. The date next to each country helps identify comparisons where observations were recorded at different times.
+
+The printed table lists the same observations from highest to lowest, making it easier to look up exact values than reading them from the chart alone.
+
+One important distinction: this code chooses the latest valid observation for each country independently. That is appropriate for the stated question, but it is not a same-day comparison. A comparison on a common date would require a different selection rule.

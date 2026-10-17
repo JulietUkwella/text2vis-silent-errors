@@ -1,0 +1,42 @@
+## 1. Analytical choices and why they matter
+
+Before creating the chart, we need to decide exactly what “the number of new COVID cases changed” means.
+
+| Analytical choice         | Option I will use                                                | Reason                                                                                                                                        |
+| ------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Measure                   | `new_cases_smoothed`                                             | This is the seven-day smoothed measure of newly reported cases. It reduces day-to-day fluctuations and makes the overall trend easier to see. |
+| Counts or rates           | Absolute case counts, not cases per million                      | The question asks for the number of cases in the United States. A population-adjusted rate would answer a different question.                 |
+| Time period               | January 1 to December 31, 2023, inclusive                        | This captures the entire calendar year, rather than a rolling year or a subset of months.                                                     |
+| Geographic selection      | Rows where `location == "United States"` and `iso_code == "USA"` | This isolates the United States and helps avoid accidentally including aggregate rows such as `World` or a continent.                         |
+| Daily or cumulative cases | Daily new cases, not `total_cases`                               | New cases show how reported cases changed over time. Cumulative cases generally increase over time and answer a different question.           |
+| Data frequency            | Daily observations, using the dataset's smoothed measure         | The chart will preserve the daily time series while making the trend less noisy.                                                              |
+| Missing values            | Leave them missing rather than replacing them with zero          | A missing value does not necessarily mean that zero cases were reported.                                                                      |
+| Duplicate dates           | Check for duplicates and stop if any are found                   | Summing duplicate country rows could double-count cases, while arbitrarily retaining one row could discard data.                              |
+
+### What could make the chart misleading?
+
+There are several important caveats when interpreting this dataset.
+
+- Reported cases are not the same as actual infections. Testing availability, testing behavior, and reporting practices changed over the course of the pandemic. A decline in reported cases does not necessarily mean infections declined by precisely the same amount.
+- Smoothing hides short-term fluctuations. The `new_cases_smoothed` column is useful for showing the general trend, but it is not the exact number of new cases reported on each individual day. I will label the chart accordingly.
+- Reporting corrections can affect the numbers. The raw `new_cases` field can contain negative values when previously reported figures are revised. These should not automatically be changed to zero.
+- Missing data can create gaps. A missing observation must not be interpreted as zero cases. The code will reindex the series to include every day in 2023 while preserving missing values, so gaps remain visible.
+- The dataset can be revised. The chart reflects the contents of your local CSV file, which may differ from subsequently updated versions of the Our World in Data dataset.
+
+Given these considerations, a line chart of seven-day smoothed daily reported cases is a good choice for answering the question about how the trend changed during 2023.
+
+## 2. Python code using pandas and matplotlib
+
+The following code assumes that `owid-covid-data.csv` is in your current working directory.
+
+```
+import pandas as pdimport matplotlib.pyplot as pltimport matplotlib.dates as mdates# 1. Load the datasetdf = pd.read_csv("owid-covid-data.csv")# 2. Convert dates and ensure the case measure is numericdf["date"] = pd.to_datetime(df["date"], errors="coerce")df["new_cases_smoothed"] = pd.to_numeric(    df["new_cases_smoothed"], errors="coerce")# 3. Select only United States observations in calendar year 2023start_date = pd.Timestamp("2023-01-01")end_date = pd.Timestamp("2023-12-31")us = df.loc[    (df["location"] == "United States")    & (df["iso_code"] == "USA")    & (df["date"] >= start_date)    & (df["date"] <= end_date)].copy()# Check that the selection contains dataif us.empty:    raise ValueError(        "No United States records were found for 2023. "        "Check the file, date values, and location labels."    )# 4. Check that there is only one row per dateif us["date"].duplicated().any():    duplicate_dates = us.loc[        us["date"].duplicated(keep=False), "date"
+```
+
+## 3. How to interpret the chart
+
+The horizontal axis shows the dates throughout 2023, and the vertical axis shows the estimated daily number of newly reported cases using the dataset's seven-day smoothed measure.
+
+Peaks indicate periods when reported new cases were relatively high; troughs indicate periods when they were relatively low. Using the smoothed measure makes these broader changes easier to identify than using raw daily reports.
+
+Important: The code produces the chart from your local CSV; it does not assume particular peaks or values without inspecting that file. The result describes reported cases, not all actual infections in the United States.

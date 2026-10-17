@@ -1,0 +1,47 @@
+## 1. Analytical choices to make before plotting
+
+The question, “Is there a link between the share of older people and COVID death rates?”, leaves several decisions open. I would use a cross-country scatter plot comparing the percentage of people aged 65 or older with cumulative reported COVID-19 deaths per million people.
+
+| Analytical choice                           | My choice and why                                                                                                                                                                                                                                                                     |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1. How to measure the share of older people | Use `aged_65_older`, which represents the percentage of the population aged 65 and older. This gives a clear, widely useful measure of an older population. The alternative `aged_70_older` could be used to check whether the findings are sensitive to the age threshold.           |
+| 2. How to measure COVID deaths              | Use `total_deaths_per_million` instead of `total_deaths`. Raw totals favour countries with larger populations, while deaths per million makes country-level comparisons more meaningful.                                                                                              |
+| 3. Cumulative deaths or recent deaths?      | Use cumulative deaths per million rather than daily deaths. This measures the overall reported mortality burden by a particular date and avoids much of the day-to-day volatility in new deaths. It does not measure the risk of dying during a specific period.                      |
+| 4. Which time period?                       | Use a single reference date: the latest date on which at least 80% of eligible countries and territories have both measures available. This is a compromise between using recent data and comparing locations at the same point in time. The code identifies this date automatically. |
+| 5. Which rows to include?                   | Include country and territory observations, but exclude aggregate rows such as the world or continents. Use one observation per location at the chosen date, and exclude rows missing either measure.                                                                                 |
+| 6. How to display the relationship          | Use a scatter plot, with one dot per country or territory, a linear trend line, and Pearson's correlation coefficient. The dots reveal the spread of the data, while the trend line and correlation help summarize the direction and strength of a linear relationship.               |
+
+### What could make the chart misleading?
+
+Several limitations matter when interpreting the results.
+
+- Correlation does not establish causation. Even if countries with larger older populations report more deaths per million, this would not prove that the population's age structure explains the difference. Income, health care capacity, vaccination, underlying health conditions, epidemic timing and other factors may also matter.
+- National averages hide individual differences. This is a comparison between countries, not a comparison between older and younger individuals. A country-level association does not directly estimate an individual's risk of dying.
+- Reported deaths are not perfectly comparable. Countries differ in their definitions of COVID-related deaths, testing, death registration and reporting completeness. `total_deaths_per_million` is not a complete measure of all pandemic-related mortality.
+- Cumulative deaths depend on the observation period. A country with a later endpoint may have more accumulated deaths simply because it has been observed for longer. Using a common reference date reduces this problem, although countries with incomplete data will be excluded.
+- Missing data can cause selection bias. The countries with both measures available may not represent all countries equally.
+- Outliers can dominate the pattern. A few countries with exceptionally high death rates can influence the trend line and Pearson correlation. The raw scatter plot helps reveal this issue.
+- The age measure is only one demographic indicator. The percentage aged 65 or older does not capture differences within that group, such as the percentage aged 85 or older, or the population's underlying health.
+
+One particularly important detail is that each country appears on many dates in the CSV, while `aged_65_older` is a country-level demographic measure. Comparing all daily rows as though they were separate observations would give countries with longer time series disproportionate weight. The code below avoids that by selecting just one reference-date observation per country or territory.
+
+## 2. Python code using pandas and matplotlib
+
+The script reads `owid-covid-data.csv`, selects a common reference date based on data availability, prints the selected date and sample size, and creates and saves the chart as `covid_deaths_vs_older_share.png`.
+
+```
+from pathlib import Pathimport mathimport pandas as pdimport matplotlib.pyplot as plt# --------------------------------------------------# 1. Settings# --------------------------------------------------FILE_PATH = Path("owid-covid-data.csv")COVERAGE_THRESHOLD = 0.80  # Require at least 80% coverageAGE_COL = "aged_65_older"DEATH_COL = "total_deaths_per_million"REQUIRED_COLS = {    "iso_code",    "continent",    "location",    "date",    AGE_COL,    DEATH_COL,}# --------------------------------------------------# 2. Load and validate the data# --------------------------------------------------if not FILE_PATH.exists():    raise FileNotFoundError(        f"Could not find {FILE_PATH.resolve()}. "        "Place the CSV in the current working directory "        "or update FILE_PATH."    )df = pd.read_csv(FILE_PATH, low_memory=False)missing_cols = REQUIRED_COLS.difference(df.columns)if missing_cols:    raise ValueError(        f"The CSV is missing required columns: "        f"{sorted(missing_cols)}"    )# Parse dates and ensure the two measures are numeric.df["date"] = pd.to_datetime(df["date"], errors="coerce")for col in [AGE_COL, DEATH_COL]:    df[col] = pd.to_numeric(df[col], errors="coerce")
+```
+
+## 3. How to interpret the resulting chart
+
+The results will depend on the contents of your local CSV, so the actual direction and strength of the relationship should be determined after running the code.
+
+- An upward trend line and positive correlation suggest that countries with larger shares of people aged 65 or older tend to have higher cumulative reported COVID-19 deaths per million.
+- A downward trend line and negative correlation suggest the opposite pattern.
+- A weak trend or correlation near zero suggests little linear association, although a nonlinear relationship may still exist.
+- A wide spread of dots means countries with similar older-population shares can have very different mortality outcomes. Other factors may explain some of those differences.
+
+Pearson's \\(r\\) ranges from \\(-1\\) to \\(+1\\). Values nearer either extreme indicate stronger linear association; values near zero indicate weaker linear association.
+
+The key conclusion: this chart can reveal whether an association exists at the country level, but it cannot establish that a larger older population causes a higher COVID-19 death rate. To investigate that explanation more rigorously, you would need to account for potential confounders and examine age-specific mortality data where available.

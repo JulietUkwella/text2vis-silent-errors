@@ -1,0 +1,37 @@
+The most useful first chart is a scatter plot of country-level diabetes prevalence against cumulative reported COVID-19 deaths per million people. Each point represents one country or separately reported territory. This lets us see whether countries with higher diabetes prevalence also tended to experience higher reported COVID-19 mortality, without confusing population size with mortality risk.
+1. Analytical choices to make before plotting
+Analytical choice	What I would choose	Why
+Measure of diabetes	diabetes_prevalence	This is a prevalence percentage, making countries more comparable than a count of people with diabetes. OWID defines its diabetes prevalence measure for people aged 20–79 and describes it as age-standardized.  Our World in Data
+Measure of COVID-19 deaths	total_deaths_per_million	Total deaths alone tend to be larger in countries with larger populations. Deaths per million provide a more comparable measure of reported mortality.
+Cumulative deaths or new deaths?	Cumulative deaths	The question asks about overall COVID-19 deaths, rather than deaths during a particular week or wave.
+Time period	Latest non-missing cumulative death rate available for each country	This uses the available pandemic history without arbitrarily choosing a particular wave. However, the latest observation may come from a different date in each country, so the code reports the date range.
+Rows to include	Country- and territory-level observations with a non-missing continent and ISO code	The dataset also includes aggregate rows such as continents and the world total. Including those alongside countries would mix different geographic levels and could distort the relationship.
+Missing values	Keep only countries with valid values for both measures	A country with no diabetes estimate or no usable death-rate observation cannot contribute meaningfully to this chart.
+Chart type	Scatter plot	It shows the variation among countries and whether higher diabetes prevalence tends to coincide with higher death rates.
+Summary statistic	Spearman rank correlation	It summarizes the direction and strength of a monotonic relationship without relying as heavily on extreme values as Pearson correlation does. It is descriptive, not causal.
+What could make the chart misleading?
+First, correlation does not imply causation. A country with high diabetes prevalence and high COVID-19 mortality does not prove that diabetes caused its higher death rate. Age structure, healthcare capacity, income, vaccination, public-health policies and other factors could influence the relationship.
+Second, this is country-level data, not individual-level data. The chart cannot tell us whether an individual with diabetes was more likely to die of COVID-19. That would require individual-level health and outcome records.
+Third, reported deaths are not necessarily all deaths caused by COVID-19. Countries differ in testing, death certification and reporting practices; OWID explicitly cautions that reported deaths may not represent the full burden of COVID-19. 
+
+
+GitHub
+
+
+
+Fourth, the death observations may cover different periods. Using each country's latest non-missing observation maximizes coverage, but one country's cumulative total may be measured later than another's.
+Fifth, missing data can introduce selection bias. Countries with both variables available may differ systematically from countries excluded from the analysis.
+Finally, the diabetes prevalence value is a national indicator, not necessarily a value measured at the exact date of a country's latest death observation. The y-axis in the code uses a symmetric logarithmic scale to keep both zero or low death rates and very high rates visible without removing countries with zero reported deaths.
+2. Python code using pandas and matplotlib
+Save this code in the same directory as owid-covid-data.csv, or change FILE to the correct path.
+import pandas as pdimport matplotlib.pyplot as plt# --------------------------------------------------# 1. Load the dataset# --------------------------------------------------FILE = "owid-covid-data.csv"df = pd.read_csv(FILE, low_memory=False)required_columns = [    "iso_code",    "continent",    "location",    "date",    "diabetes_prevalence",    "total_deaths_per_million",]missing_columns = [col for col in required_columns if col not in df.columns]if missing_columns:    raise ValueError(f"Missing required columns: {missing_columns}")# Convert dates and the two analytical variables to usable types.df["date"] = pd.to_datetime(df["date"], errors="coerce")for col in ["diabetes_prevalence", "total_deaths_per_million"]:    df[col] = pd.to_numeric(df[col], errors="coerce")# --------------------------------------------------# 2. Keep country- and territory-level observations# --------------------------------------------------# Aggregate rows, such as the world and continents, generally# have no continent value of their own.country_rows = df.loc[    df["continent"].notna()    & df["iso_code"].notna()    & df["date"].notna()].copy()
+
+
+
+3. How to interpret the chart
+Look at the overall pattern of points, rather than focusing on one country.
+- An upward pattern suggests that countries with higher diabetes prevalence tended to have higher reported cumulative COVID-19 death rates.
+- A downward pattern suggests that countries with higher diabetes prevalence tended to have lower reported death rates.
+- No clear pattern suggests a weak or inconsistent relationship in this dataset.
+The Spearman correlation ranges from −1 to +1. A positive value indicates that higher diabetes prevalence tends to accompany higher death rates; a value near zero indicates little monotonic association; and a negative value indicates the opposite tendency.
+The graph and correlation can help answer the exploratory question, but they do not establish whether diabetes independently increases COVID-19 mortality. That would require a more detailed analysis controlling for important country-level differences, and ideally individual-level health data.

@@ -1,0 +1,13 @@
+Problem: The code uses the latest non-missing values for each country, but it does not ensure that diabetes prevalence and COVID-19 deaths are measured at comparable times or that the death totals are equally reliable across countries.
+
+The main issues are:
+
+1\. Mismatched measurement dates. The `last` aggregation selects the last non-missing value independently for each variable. Diabetes prevalence may therefore come from a different date than cumulative COVID-19 deaths. The comparison does not consistently represent a common point in time.
+
+2\. Differences in COVID-19 reporting. Cumulative deaths per million are reported deaths, not necessarily all deaths caused by COVID-19. Countries differ in testing, death certification, and reporting practices, which can affect comparisons.
+
+3\. Differences in the populations and data coverage. Dropping locations with missing values excludes countries without both measurements. If missingness is associated with data quality, income, or health-system capacity, the included countries may not be representative.
+
+4\. Correlation does not establish causation. Even if the chart shows a positive correlation, that would not demonstrate that higher diabetes prevalence causes more COVID-19 deaths. Age structure, obesity, healthcare capacity, and other factors may influence both variables.
+
+A better approach: Use diabetes prevalence measured on a clearly specified, comparable basis for each country, pair it with cumulative COVID-19 deaths per million at a common cutoff date, and report the countries included and the limitations of cross-country reporting. The scatter plot and Pearson correlation can then help assess whether the two variables are associated, but not whether one causes the other.

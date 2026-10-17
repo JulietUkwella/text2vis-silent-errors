@@ -1,0 +1,8 @@
+Problem: The chart compares countries’ share of people aged 65 and older with their cumulative reported COVID-19 deaths per million, but it does not account for differences in how completely countries reported COVID-19 deaths or when their data were last updated. These differences can distort the apparent relationship.
+
+There are two further limitations:
+
+- The measurements are not necessarily from the same period. OWID defines `aged_65_older` as the population share aged 65+ in the most recent year available, while `total_deaths_per_million` is cumulative. The code selects each country’s latest record with both values present, so countries can be compared using different end dates. 【turn739960search2】
+- Correlation does not establish causation. A Pearson correlation across countries cannot isolate the effect of population age from other factors, such as healthcare capacity, vaccination, public-health policies, and underlying health conditions.
+
+Excluding OWID aggregate rows and calculating a Pearson correlation are reasonable steps for an exploratory analysis. However, the chart can only suggest a cross-country association, not conclusively establish whether an older population causes higher COVID-19 mortality.

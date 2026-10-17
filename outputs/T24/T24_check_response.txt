@@ -1,0 +1,13 @@
+Problem: The code filters the United States and the year 2023 correctly, but it assumes that `new_cases` represents comparable daily case counts throughout the year. The underlying reporting frequency and data sources changed during 2023.
+
+Our World in Data switched its confirmed-case data to the World Health Organization (WHO) on March 8, 2023, and the WHO updates its data weekly. In addition, the CDC discontinued national aggregate COVID-19 case reporting on May 11, 2023, with its final update reconciling historical data through May 10.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://ourworldindata.org\&sz=32)
+
+Our World in Data
+
++1
+
+
+
+Consequently, the chart may not accurately show daily new cases across the entire year. Weekly reports or missing observations can create gaps or misleading jumps in the plotted line. A more reliable analysis would use a clearly defined reporting frequency and account for the source and reporting changes, rather than interpreting every `new_cases` value as a directly comparable daily count.

@@ -1,0 +1,49 @@
+## 1. Analytical choices and why
+
+The question asks whether European countries with more hospital beds tend to have fewer COVID-19 deaths. I would use a scatter plot, with hospital bed capacity on the horizontal axis and cumulative COVID-19 deaths per million people on the vertical axis.
+
+| Analytical choice                 | Option chosen                                                                                                             | Reason                                                                                                                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Measure of hospital capacity      | `hospital_beds_per_thousand`                                                                                              | Measures hospital beds per 1,000 people, making comparisons between countries of different sizes more meaningful than using raw bed counts.                                      |
+| Measure of COVID-19 deaths        | `total_deaths_per_million`                                                                                                | Measures cumulative deaths per million people, rather than total deaths, so large countries do not automatically dominate the comparison.                                        |
+| Totals or rates                   | Rates for both variables                                                                                                  | Population-adjusted measures are more appropriate for comparing countries of different sizes.                                                                                    |
+| Time period                       | Latest date available in the European rows of the CSV                                                                     | Provides the most recent overall snapshot in the supplied file.                                                                                                                  |
+| Consistency of death observations | Use each country's latest non-missing death rate on or before the reference date, provided it is no more than 90 days old | Reduces the risk of comparing a recent observation from one country with a substantially older observation from another. The 90-day threshold is an explicit, adjustable choice. |
+| Hospital bed observation          | Latest non-missing bed-capacity value available on or before the reference date                                           | Uses the most recently available value in the file, without requiring bed capacity and deaths to be present in exactly the same row.                                             |
+| Geographic inclusion              | Rows where `continent == "Europe"`                                                                                        | Uses the dataset's own geographic classification and excludes most non-country aggregates that lack a continent assignment.                                                      |
+| Missing data                      | Exclude countries missing either required measure                                                                         | Avoids imputing values that could create artificial relationships.                                                                                                               |
+| Chart type                        | Labelled scatter plot with a simple trend line                                                                            | Each point represents a country. The trend line helps reveal a possible association but does not establish causation.                                                            |
+
+### What could make the chart misleading?
+
+Several limitations matter when interpreting the results:
+
+- Hospital beds are not necessarily COVID-19 beds. `hospital_beds_per_thousand` measures general hospital capacity. It does not indicate how many beds were staffed, available during a surge, or equipped for intensive care.
+- The measurement years may differ. Hospital bed capacity can come from an older source year, and the listed columns do not identify the original measurement year. The latest row containing a value does not necessarily mean that the capacity was measured recently.
+- Death observations can be from different dates. The code uses a common reference date but accepts a country's last valid death observation if it is within 90 days of that date. The actual observation dates will therefore not necessarily match.
+- Reported deaths are imperfect. Countries differ in how they define, attribute, and report COVID-19 deaths. Underreporting and revisions can affect comparisons.
+- Cumulative deaths do not measure hospital pressure directly. A country's death rate is influenced by age structure, vaccination, population health, variants, public-health measures, and many other factors, not simply hospital bed capacity.
+- The geographic selection follows OWID's labels. If a strict comparison of sovereign states is required, the included locations should be reviewed for territories or other special cases.
+
+Consequently, the chart can show whether hospital bed capacity is associated with cumulative COVID-19 deaths, but it cannot establish that more beds caused a country to have fewer deaths.
+
+## 2. Python code
+
+The code below uses `pandas`, `matplotlib`, and `numpy`. It loads `owid-covid-data.csv`, selects the latest available observations according to the choices above, reports how many countries are included or excluded, and creates and saves the chart.
+
+```
+import numpy as npimport pandas as pdimport matplotlib.pyplot as plt# --------------------------------------------------# 1. Configuration# --------------------------------------------------CSV_PATH = "owid-covid-data.csv"# None uses the latest date in the European rows of the CSV.# For a fixed historical snapshot, enter a date such as# "2022-12-31", provided that date falls within the data.REFERENCE_DATE = None# Exclude a country if its latest non-missing death# observation is more than this many days before the# reference date.MAX_DEATH_DATA_AGE_DAYS = 90OUTPUT_FILE = "europe_hospital_beds_vs_covid_deaths.png"# --------------------------------------------------# 2. Load and validate the data# --------------------------------------------------df = pd.read_csv(CSV_PATH)required_columns = {    "continent",    "location",    "date",    "hospital_beds_per_thousand",    "total_deaths_per_million",}missing_columns = required_columns.difference(df.columns)if missing_columns:    raise ValueError(        f"The CSV is missing these required columns: "        f"{sorted(missing_columns)}"    )df["date"] = pd.to_datetime(df["date"], errors="coerce")# Ensure the two analysis variables are numeric.for column in [    "hospital_beds_per_thousand",
+```
+
+## 3. How to interpret the chart
+
+Each dot represents a European location, with its hospital bed capacity on the x-axis and cumulative COVID-19 deaths per million on the y-axis.
+
+- Dots toward the right indicate greater reported hospital bed capacity per capita.
+- Dots higher up indicate more reported cumulative COVID-19 deaths per capita.
+- A downward-sloping trend line would indicate that greater hospital bed capacity is associated with fewer cumulative deaths in this cross-country comparison.
+- An upward-sloping line would indicate a positive association, while a nearly flat line would indicate little linear association.
+
+These are possible interpretations, not results claimed in advance. The actual pattern depends on the contents of your CSV file.
+
+One final consideration: the 90-day exclusion rule deliberately prioritizes recent and reasonably comparable death observations over maximum country coverage. The code prints excluded locations so you can see its impact. For a chart intended to represent a specific period, setting `REFERENCE_DATE` to a fixed historical date is preferable to relying on the file's latest date.

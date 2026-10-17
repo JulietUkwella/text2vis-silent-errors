@@ -1,0 +1,66 @@
+The most useful starting point is a scatter plot of GDP per capita against cumulative reported COVID-19 deaths per million people, with each dot representing one country or territory. This accounts for differences in population size and lets us examine whether richer places tended to report higher or lower death rates.
+
+## 1. Analytical choices and why
+
+1\. How should we measure wealth?
+
+Use `gdp_per_capita`, rather than total GDP. A country's total GDP depends heavily on its population, whereas GDP per capita is a more relevant proxy for its average economic resources. It does not, however, measure income inequality or the quality of its healthcare system.
+
+2\. How should we measure COVID-19 deaths?
+
+Use `total_deaths_per_million`, rather than `total_deaths`. A country with 100 million people would generally be expected to have more deaths in absolute numbers than a country with 1 million people, even if their death rates were identical. Deaths per million makes the comparison fairer with respect to population size.
+
+I would use cumulative deaths rather than daily or new deaths because the cumulative measure captures the overall reported mortality burden. Excess mortality could be a useful alternative, but its availability is less consistent across countries.
+
+3\. What time period should we use?
+
+Use the latest nonmissing cumulative death-rate observation available for each country, up to the latest date in the CSV file.
+
+This makes use of the full dataset without arbitrarily discarding later data. However, some countries may have stopped reporting earlier than others. The code will count observations that are more than 90 days older than the dataset's latest date, so you can see how much this may affect the comparison.
+
+A fixed common cutoff date would be another reasonable option, particularly if the goal is to compare countries at precisely the same point in time.
+
+4\. Which rows should be included?
+
+Include one observation per country or territory, not every daily row. Otherwise, countries with long reporting histories would contribute hundreds or thousands of dots, and the observations would not be independent.
+
+Exclude regional aggregates such as the world, continents and income groups; require nonmissing GDP per capita and cumulative deaths; and exclude zero or negative GDP values because the chart will use a logarithmic horizontal axis. Country and territory records with a continent assigned will be retained.
+
+5\. How should the chart be scaled?
+
+Use a logarithmic x-axis for GDP per capita because values span a wide range. Keep deaths per million on a linear y-axis so the mortality rates remain straightforward to interpret. Color points by continent to help reveal regional patterns.
+
+The linear y-axis has a drawback: countries with exceptionally high reported death rates can compress most other points into the bottom of the chart.
+
+## 2. What could make the chart misleading?
+
+Even if the chart shows an association between wealth and COVID-19 deaths, it cannot establish that richer countries handled the pandemic better or worse.
+
+- Differences in death reporting: Countries differ in testing, death certification, record completeness and definitions of COVID-related deaths. Reported deaths are not necessarily the same as actual COVID-19 deaths.
+- Different population characteristics: Older populations can experience higher death rates. Age structure, underlying health, geography, population density, vaccination and the timing of infection waves all matter.
+- GDP is only a proxy: National GDP per capita does not directly measure healthcare access, public-health decisions, preparedness or how resources are distributed.
+- Missing data: Countries without usable GDP or death data are excluded. If missing information is more common in particular income groups, the plotted sample may be biased.
+- Unequal reporting end dates: A country's latest available death rate may be substantially older than the latest date in the file. Its value may therefore understate its eventual cumulative total.
+- Country-level comparisons can hide variation: A national average cannot tell us whether richer individuals within a country had better outcomes.
+
+With those limitations in mind, the chart is best treated as an exploratory comparison of national income and reported COVID-19 mortality, not a definitive ranking of pandemic performance.
+
+## 3. Python code using pandas and matplotlib
+
+Save the following script in the same folder as `owid-covid-data.csv`. It selects one observation per location, creates the scatter plot, and prints a Spearman rank correlation as a simple measure of the overall association.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# --------------------------------------------------# 1. Load and clean the data# --------------------------------------------------FILE = "owid-covid-data.csv"df = pd.read_csv(FILE, low_memory=False)df["date"] = pd.to_datetime(df["date"], errors="coerce")# Ensure the relevant columns are numeric.for col in ["gdp_per_capita", "total_deaths_per_million"]:    df[col] = pd.to_numeric(df[col], errors="coerce")# Latest date represented anywhere in the file.cutoff_date = df["date"].max()if pd.isna(cutoff_date):    raise ValueError("No valid dates were found in the CSV file.")# Ignore rows with invalid dates or no country/territory# classification. This removes the usual OWID aggregates.country_rows = df.loc[    df["date"].notna()    & df["iso_code"].notna()    & df["continent"].notna()    & (df["date"] <= cutoff_date)].copy()# --------------------------------------------------# 2. Get the latest available death rate per location# --------------------------------------------------
+```
+
+## 4. How to interpret the result
+
+Look at the distribution of dots from left to right. Since the x-axis measures GDP per capita and the y-axis measures reported deaths per million:
+
+- If richer countries tend to have lower death rates, the relationship would generally slope downward.
+- If richer countries tend to have higher death rates, it would generally slope upward.
+- If there is no clear pattern, wealth alone may not be strongly associated with the reported outcome in this comparison.
+
+The printed Spearman correlation gives a numerical summary of the association: a negative value means higher GDP per capita tends to be associated with lower death rates in the sample, and a positive value indicates the reverse. Values closer to zero indicate a weaker monotonic association.
+
+Neither the scatter plot nor the correlation adjusts for age, health conditions, policies or differences in reporting. The correlation describes the observed countries; it does not show that wealth caused their outcomes.

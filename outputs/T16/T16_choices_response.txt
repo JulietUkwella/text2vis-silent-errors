@@ -1,0 +1,77 @@
+## 1. Analytical choices to make before plotting
+
+The question “Which countries had the highest excess mortality during the pandemic?” has several possible interpretations. I would use cumulative excess mortality as a percentage of expected deaths, then rank countries and territories by their latest available value.
+
+Excess mortality measures deaths from all causes above the number expected under normal conditions. It can capture both unrecorded COVID-19 deaths and indirect effects of the pandemic, such as disruptions to healthcare.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://ourworldindata.org\&sz=32)
+
+Our World in Data
+
+
+
+### Decisions and rationale
+
+| Analytical choice              | Option I will use                                                                          | Why                                                                                                                                                                                  |
+| ------------------------------ | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Measure of excess mortality    | `excess_mortality_cumulative`                                                              | Measures the cumulative percentage difference between actual and expected deaths since January 1, 2020. Higher values indicate greater excess mortality relative to expected deaths. |
+| Totals or rates?               | Percentage above expected deaths                                                           | Makes countries of different population sizes more comparable than raw death counts.                                                                                                 |
+| Time period                    | Pandemic period from January 1, 2020, through each location's latest available observation | Uses the most recent available cumulative value without arbitrarily discarding later observations.                                                                                   |
+| Which rows to include?         | Country and territory rows, excluding aggregates                                           | The file also contains rows for the world and regions that should not be ranked alongside individual countries.                                                                      |
+| Missing values                 | Exclude missing measurements; use each location's last non-missing value                   | Avoids inventing estimates for countries without usable observations.                                                                                                                |
+| Number of countries to display | The 15 highest                                                                             | Keeps the horizontal bar chart readable.                                                                                                                                             |
+| Negative values                | Keep their original signs                                                                  | A value below zero indicates cumulative deaths were below the expected baseline, not that excess deaths should be treated as a positive number.                                      |
+
+The selected variable has a specific interpretation: a cumulative value of 20% means deaths were 20% above the estimated expected level over the period covered by that observation. Our World in Data defines the cumulative percentage measure separately from cumulative excess deaths in absolute numbers and cumulative excess deaths per million people.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://github.com\&sz=32)
+
+GitHub
+
+
+
+### What could make the chart misleading?
+
+There are four important limitations.
+
+1. Different reporting end dates. Countries do not necessarily have observations for the same final date. The latest value for one country might cover a longer period than the latest value for another. The code will display the date next to every country to make this difference visible.
+
+2. Missing countries are not necessarily low-mortality countries. Some countries lack sufficiently complete or timely all-cause mortality data. Excluding missing measurements can produce a ranking that is not representative of every country worldwide.&#x20;
+
+   [image](https://www.google.com/s2/favicons?domain=https://ourworldindata.org\&sz=32)
+
+   Our World in Data
+
+3. Excess mortality is estimated, not perfectly observed. The expected-deaths baseline is modeled, and death-registration coverage, reporting delays, and data quality vary between countries. The measure also includes deaths indirectly associated with the pandemic, not just deaths caused by COVID-19.&#x20;
+
+   [image](https://www.google.com/s2/favicons?domain=https://ourworldindata.org\&sz=32)
+
+   Our World in Data
+
+   +1
+
+4. The metric changes what “highest” means. A percentage ranking can differ substantially from a ranking by the absolute number of excess deaths. For the latter, use `excess_mortality_cumulative_absolute`; for a population-adjusted count, use `excess_mortality_cumulative_per_million`.&#x20;
+
+   [image](https://www.google.com/s2/favicons?domain=https://github.com\&sz=32)
+
+   GitHub
+
+
+
+Because the question does not specify whether it means absolute deaths or relative mortality, I will use the percentage measure for the main chart and label it clearly.
+
+## 2. Python code using pandas and matplotlib
+
+Save this script in the same folder as `owid-covid-data.csv`, or change `FILE` to the file's full path.
+
+```
+import pandas as pdimport matplotlib.pyplot as pltfrom matplotlib.ticker import PercentFormatter# --------------------------------------------------# 1. Load the dataset# --------------------------------------------------FILE = "owid-covid-data.csv"METRIC = "excess_mortality_cumulative"TOP_N = 15df = pd.read_csv(FILE, low_memory=False)# Check that the required columns are present.required_columns = [    "iso_code",    "continent",    "location",    "date",    METRIC,]missing_columns = [    col for col in required_columns    if col not in df.columns]if missing_columns:    raise ValueError(        f"Missing required columns: {missing_columns}"    )# Parse dates and convert the chosen measure to numeric.df["date"] = pd.to_datetime(df["date"], errors="coerce")df[METRIC] = pd.to_numeric(df[METRIC], errors="coerce")# --------------------------------------------------# 2. Keep country and territory rows, not aggregates# --------------------------------------------------# OWID aggregate codes generally do not have a standard# three-letter ISO code or a continent value.#
+```
+
+## 3. How to interpret the result
+
+The countries or territories at the top of the chart have the highest reported cumulative excess-mortality percentages among the locations with available data. Each bar's value indicates how far cumulative deaths exceeded the estimated expected level, in percentage terms.
+
+The code calculates the ranking from your local CSV, so the actual country names and ordering will depend on the contents and reporting dates of your particular file.
+
+One final caution: this chart answers which countries had the highest relative excess mortality, not which countries experienced the largest number of excess deaths. That second question requires ranking `excess_mortality_cumulative_absolute` instead.

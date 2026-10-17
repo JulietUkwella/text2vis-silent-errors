@@ -1,0 +1,46 @@
+The key is to define what “rise fastest” means. I would measure how quickly the daily rate of new COVID-19 cases increased per million people during March 2020, then rank countries by that trend. This makes comparisons more meaningful between countries of different population sizes.
+
+## 1. Analytical choices
+
+| Analytical choice          | Option I would use                                                               | Why                                                                                                                                                              |
+| -------------------------- | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Measure of cases           | `new_cases_smoothed_per_million`                                                 | Measures the daily incidence of new cases per million people, rather than the cumulative number of cases.                                                        |
+| Totals or rates            | Per-million population rates                                                     | Prevents countries with larger populations from automatically dominating the ranking.                                                                            |
+| Definition of “fastest”    | The slope of a linear trend fitted to daily new cases per million                | Measures how quickly the daily incidence rate increased throughout the month, rather than comparing just two potentially unusual days.                           |
+| Time period                | March 1–31, 2020, inclusive                                                      | Matches the question and captures the trend over the full month.                                                                                                 |
+| Which rows to include      | Country and territory locations with a non-missing `continent` value             | Helps exclude aggregate rows such as the world or continent totals, which could otherwise be counted as individual countries. Territories may still be included. |
+| Missing values             | Exclude missing case-rate observations; do not replace them with zero            | A missing value does not necessarily mean that no cases occurred.                                                                                                |
+| Minimum data requirements  | At least 20 valid daily observations spanning at least 25 calendar days in March | Makes rankings less dependent on short or incomplete reporting histories.                                                                                        |
+| Which countries to display | The 15 locations with the largest positive slopes                                | Focuses the chart on locations where incidence was rising fastest.                                                                                               |
+
+### What could make the chart misleading?
+
+- Reported cases are not all infections. Differences in testing availability, reporting practices, and case definitions mean that countries may not be directly comparable.
+- Per-capita rates tell a different story from total cases. A country with a high increase per million people may have added fewer cases in absolute terms than a populous country.
+- A linear trend is only an approximation. Epidemics can grow exponentially, slow down, or experience sudden changes. The slope summarizes the overall direction and speed of change, not the exact underlying transmission dynamics.
+- Smoothing hides some short-term variation. The selected column smooths daily fluctuations, which helps reduce noise but can make sudden changes less visible.
+- Missing data can affect the ranking. The minimum-data requirement excludes locations with insufficient coverage, potentially including places whose outbreaks or reporting began late in March.
+- The data records reported cases, not necessarily the exact start of outbreaks. A sharp increase can reflect expanded testing or delayed reporting as well as an actual increase in infections.
+
+This analysis therefore answers a specific question: Which countries and territories experienced the steepest increase in reported daily new cases per million people during March 2020? It does not identify which had the highest percentage growth or the largest absolute increase in cases.
+
+## 2. Python code
+
+The code below reads `owid-covid-data.csv`, calculates a linear-trend slope for each eligible location, and creates a horizontal bar chart of the 15 fastest-rising locations.
+
+```
+import pandas as pdimport numpy as npimport matplotlib.pyplot as plt# --------------------------------------------------# 1. Load and prepare the data# --------------------------------------------------file_path = "owid-covid-data.csv"df = pd.read_csv(file_path)# Convert dates and case-rate values to usable types.df["date"] = pd.to_datetime(df["date"], errors="coerce")metric = "new_cases_smoothed_per_million"df[metric] = pd.to_numeric(df[metric], errors="coerce")# Define the analysis period.start_date = pd.Timestamp("2020-03-01")end_date = pd.Timestamp("2020-03-31")# Keep March 2020 and exclude aggregate rows that have no# continent assigned.march = df.loc[    df["date"].between(start_date, end_date)
+```
+
+## 3. How to interpret the chart
+
+Each bar represents the estimated trend in a location's daily new cases per million people.
+
+- Longer bar: The daily incidence rate increased more steeply during March.
+- Shorter bar: The daily incidence rate increased more gradually.
+- Slope near zero: The daily incidence rate was relatively flat over the month.
+- Negative slope: Incidence tended to decrease; these locations are excluded because the question concerns rising cases.
+
+The slope measures the change in the daily incidence rate for each additional calendar day, not the number of additional cumulative cases. The printed `valid_days` column also shows how many daily observations contributed to each estimate.
+
+Important: The actual winning locations depend on the contents of your local CSV file. Running the code produces both the chart and the numerical ranking, so the results can be checked rather than inferred in advance.

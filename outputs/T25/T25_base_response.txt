@@ -1,0 +1,15 @@
+Use a scatter plot to compare each country’s share of people aged 65 and older with its cumulative COVID-19 deaths per million people. Add a trendline and correlation coefficient to help identify whether there is an association.
+
+```
+import pandas as pdimport matplotlib.pyplot as pltimport numpy as np# 1. Load the datasetdf = pd.read_csv("owid-covid-data.csv", parse_dates=["date"])# Ensure the analysis columns are numericcolumns = ["aged_65_older", "total_deaths_per_million"]for col in columns:    df[col] = pd.to_numeric(df[col], errors="coerce")# 2. Exclude OWID aggregate rows, such as World and continentscountries = df[    ~df["iso_code"].fillna("").str.startswith("OWID_")].copy()# Keep rows with both variables availablecountries = countries.dropna(    subset=["iso_code", "aged_65_older", "total_deaths_per_million"])# 3. Select the latest available record for each countrylatest = (    countries.sort_values("date")    .groupby("iso_code")    .tail(1)    .copy())# Extract variables for the chartx = latest["aged_65_older"]y = latest["total_deaths_per_million"]# 4. Calculate the correlation coefficientcorrelation = x.corr(y)# Calculate a linear trendlineslope, intercept = np.polyfit(x, y, 1)x_line = np.linspace(x.min(), x.max(), 100)y_line = slope * x_line + intercept# 5. Create the scatter plotplt.figure(figsize=(10, 6))plt.scatter(x, y, alpha=0.7, edgecolor="black", linewidth=0.4)plt.plot(x_line, y_line, linewidth=2, color="red")plt.xlabel("Population aged 65 and older (% of population)")plt.ylabel("Cumulative COVID-19 deaths per million")plt.title("Share of Older People vs. COVID-19 Death Rates")plt.annotate(    f"Pearson correlation: {correlation:.2f}\n"    f"Countries included: {len(latest)}",    xy=(0.03, 0.97),    xycoords="axes fraction",    va="top",    bbox=dict(boxstyle="round", facecolor="white", alpha=0.8))plt.grid(True, alpha=0.3)plt.tight_layout()plt.show()print(f"Correlation coefficient: {correlation:.3f}")print(f"Number of countries analyzed: {len(latest)}")
+```
+
+### How to interpret the chart
+
+- Positive correlation: Countries with a higher share of older people tend to have more cumulative COVID-19 deaths per million.
+- Negative correlation: Countries with a higher share of older people tend to have fewer cumulative deaths per million.
+- Correlation near zero: There is little evidence of a linear relationship in the data.
+
+The red line shows the overall trend, while the correlation coefficient ranges from −1 to +1.
+
+Important limitation: This chart can reveal an association, but it cannot establish that an older population causes higher COVID-19 death rates. Healthcare quality, vaccination, reporting practices, testing, and the timing of outbreaks can also affect the results. The cumulative death rates are taken from each country’s latest available record, so the reporting dates may differ.

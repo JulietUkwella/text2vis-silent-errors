@@ -1,0 +1,15 @@
+A useful way to answer “Which countries were best at testing for COVID-19?” is to compare the number of tests conducted per confirmed case. The dataset’s `tests_per_case` column measures this: a higher value suggests more testing relative to detected cases.
+
+The following Python code uses pandas to load `owid-covid-data.csv` and matplotlib to create a horizontal bar chart of the 15 highest-ranking countries, based on each country's latest available non-missing value.
+
+## Python code
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# 1. Load the COVID-19 datasetdf = pd.read_csv("owid-covid-data.csv")# 2. Convert columns to the correct data typesdf["date"] = pd.to_datetime(df["date"], errors="coerce")df["tests_per_case"] = pd.to_numeric(    df["tests_per_case"], errors="coerce")# 3. Keep country-level records and valid testing valuesdf = df[    df["continent"].notna()    & df["tests_per_case"].notna()    & (df["tests_per_case"] > 0)].copy()# Remove infinite values, if anydf = df[    df["tests_per_case"].apply(lambda x: pd.notna(x) and x != float("inf"))]# 4. Find each country's latest available testing valuelatest = (    df.sort_values("date")      .groupby("location")      .tail(1))# 5. Select the 15 countries with the highest tests-per-case valuestop_countries = (    latest.nlargest(15, "tests_per_case")          .sort_values("tests_per_case", ascending=True)
+```
+
+## How to interpret the chart
+
+Countries with longer bars conducted more tests per confirmed case, according to the reported data. However, this does not automatically mean they had the best testing systems. Results can be influenced by testing policies, case detection, reporting quality, and the dates on which countries last reported their data.
+
+For a broader comparison, you could also examine `total_tests_per_thousand`, which measures cumulative tests per 1,000 people. That metric helps answer a slightly different question: Which countries conducted the most testing relative to their population?

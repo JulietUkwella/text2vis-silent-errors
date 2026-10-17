@@ -1,0 +1,65 @@
+# 1. Analytical choices to make before plotting
+
+The question, “Did low-income countries have a lower COVID death rate than high-income countries?”, does not have a single answer until we define income group, death rate, and comparison period. The choices also matter because countries differed in how completely they recorded COVID-19 deaths.
+
+Here is the approach I would use.
+
+| Analytical choice                    | Decision                                                                                                                                                                                 | Why                                                                                                                                                                                   |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| What counts as low- and high-income? | Use the World Bank's income classifications, comparing low-income with high-income economies only. Exclude lower-middle- and upper-middle-income economies.                              | This uses an established classification instead of inventing an arbitrary GDP-per-capita threshold.                                                                                   |
+| What is the death-rate measure?      | Cumulative reported COVID-19 deaths per 100,000 people: `total_deaths / population × 100,000`.                                                                                           | Raw death counts favour larger countries and cannot fairly compare populations of different sizes.                                                                                    |
+| Totals or rates?                     | Calculate a rate for each country, then compare the median country-level rate in each income group.                                                                                      | Each country contributes equally, so the results are not dominated by a few very populous countries. The median is also less sensitive to extreme country-level values than the mean. |
+| What time period?                    | Use a common cutoff of December 31, 2023, or the last date available in the file if it ends earlier.                                                                                     | A common endpoint makes the comparisons more consistent and avoids relying on potentially sparse later reporting.                                                                     |
+| Which observation per country?       | Use each country's most recent non-missing cumulative death count on or before the cutoff.                                                                                               | Cumulative totals should include deaths reported earlier in the pandemic. This also accommodates countries that stopped reporting before the cutoff.                                  |
+| Which rows count as countries?       | Include rows classified as low- or high-income that have a valid country code, positive population, and usable cumulative death count. Exclude regional aggregates and the global total. | Aggregates would otherwise be counted alongside their constituent countries. Missing information should not be treated as zero deaths.                                                |
+| What should the chart show?          | A bar chart of the median country-level death rate for each income group, with the numerical values labelled.                                                                            | The result is easy to interpret: the shorter bar represents the group with the lower median reported death rate.                                                                      |
+
+## 2. Important limitations that could make the chart misleading
+
+- Reported deaths are not necessarily actual deaths. Countries differ in testing capacity, death registration, and reporting practices. Under-reporting may be particularly serious in low-income countries, which could make their reported death rates look artificially low. OWID explicitly warns about this limitation.&#x20;
+
+  [image](https://www.google.com/s2/favicons?domain=https://ourworldindata.org\&sz=32)
+
+  Our World in Data
+
+  +1
+
+- The median does not measure the total burden. A median gives each country equal weight. A population-weighted comparison, calculated as the sum of deaths divided by the sum of populations, could produce a different answer.
+
+- Income classifications change over time. The dataset does not contain an income-group column. The code retrieves the World Bank's current income classifications, so these may not match countries' income groups during the pandemic. The World Bank API provides country codes and income-level information.&#x20;
+
+  [image](https://www.google.com/s2/favicons?domain=https://datahelpdesk.worldbank.org\&sz=32)
+
+  World Bank Data Help Desk
+
+- Missing values are not zero. Countries without usable death counts or population data are excluded, potentially creating selection bias.
+
+- The latest available figure may be stale. Taking the last recorded cumulative death count on or before the cutoff includes countries that stopped reporting earlier, but their figures may not cover the entire period equally.
+
+- This is a reported death-rate comparison, not a comparison of the risk of dying once infected. It also does not capture the full mortality impact of the pandemic, which can be better assessed using excess mortality where reliable data are available.&#x20;
+
+  [image](https://www.google.com/s2/favicons?domain=https://ourworldindata.org\&sz=32)
+
+  Our World in Data
+
+  +1
+
+
+
+## 3. Python code
+
+The code below reads `owid-covid-data.csv`, retrieves World Bank income classifications through its public API, calculates the median cumulative reported COVID-19 death rate for each group, and produces a labelled bar chart. It also prints the comparison so you can tell which group had the lower median.
+
+The first run requires an internet connection to retrieve the classifications.
+
+```
+df = df.dropna(subset=["date", "iso_code"]).copy()if df.empty:    raise ValueError("The dataset contains no usable dated records.")# --------------------------------------------------# 2. Set a common cutoff date# --------------------------------------------------requested_cutoff = pd.Timestamp("2023-12-31")dates_before_cutoff = df.loc[    df["date"] <= requested_cutoff, "date"]if dates_before_cutoff.empty:    # Fallback if the file contains only dates after    # the requested cutoff.    cutoff = df["date"].max()    print(        "No records exist on or before December 31, 2023. "        f"Using the latest dataset date: {cutoff.date()}."    )else:    cutoff = dates_before_cutoff.max()print(f"Comparison cutoff: {cutoff.date()}")# --------------------------------------------------# 3. Retrieve World Bank income classifications# --------------------------------------------------url = (    "https://api.worldbank.org/v2/country"    "?format=json&per_page=400")with urlopen(url, timeout=30) as response:    wb_data = json.load(response)if len(wb_data) < 2 or wb_data[1] is None:    raise RuntimeError("Could not retrieve World Bank country data.")income_rows = []for country in wb_data[1]:    iso3 = country.get("id")    income = (country.get("incomeLevel") or {}).get("id")    region = (country.get("region") or {}).get("id")    # Retain actual countries/economies in the two groups.    # Exclude regional and other aggregate entries.    if iso3 and region != "NA" and income in ["LIC", "HIC"]:        income_rows.append({            "iso_code": iso3,            "income_group": {                "LIC": "Low income",                "HIC": "High income"            }[income]        })income_df = pd.DataFrame(income_rows).drop_duplicates("iso_code")if income_df.empty:    raise RuntimeError("No eligible World Bank income classifications found.")# --------------------------------------------------
+```
+
+## 4. How to interpret the output
+
+Read the two bars as the median number of reported COVID-19 deaths per 100,000 people in a country in each income group. The parenthetical number above each bar tells you how many countries contributed to that median.
+
+If the low-income bar is shorter, the answer to the specific question is yes, low-income countries had a lower median reported death rate in this comparison. If it is taller, the answer is no.
+
+The code will determine the result from your local CSV, so no numerical conclusion can be given without running it on that file. In either case, the chart alone cannot establish that people in one income group faced a lower true risk of death, because differences in death reporting could affect the comparison substantially.

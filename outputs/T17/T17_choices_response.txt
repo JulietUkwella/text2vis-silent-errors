@@ -1,0 +1,40 @@
+## 1. Analytical choices to make before plotting
+
+The phrase “best at testing for COVID” does not have a single definition. A country might perform many tests overall, test frequently relative to its population, or identify infections through widespread testing. Those are related but different things.
+
+For this chart, I will interpret “best at testing” as having the highest reported cumulative number of COVID-19 tests per 1,000 people. This measures the intensity of testing relative to population, rather than simply rewarding the largest countries.
+
+### Choices and rationale
+
+| Analytical choice          | Option I will use                                                  | Why                                                                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Measure of testing         | `total_tests_per_thousand`                                         | It is already adjusted for population, making countries of different sizes more comparable.                                                                  |
+| Totals or rates            | A population-adjusted rate                                         | Raw `total_tests` would tend to favor countries with larger populations.                                                                                     |
+| Time period                | Each country's latest non-missing reported value                   | The cumulative rate captures reported testing over the available period. The code will show each country's reporting date so older observations are visible. |
+| Which locations to include | Locations with a reported continent and a non-missing testing rate | This generally excludes global and regional aggregates while retaining country-level observations. Some territories may still be included.                   |
+| Missing data               | Exclude locations without a usable rate                            | Missing values are not evidence that no testing occurred.                                                                                                    |
+| Comparison method          | Rank locations and chart the top 20                                | A horizontal bar chart makes the leaders easy to compare and read.                                                                                           |
+| Repeated observations      | Keep only the latest usable observation per location               | Each location should have one value in the final ranking, not a separate bar for every date.                                                                 |
+
+### Important limitations that could make the chart misleading
+
+1. Different definitions of a test. OWID notes that some countries report individual people tested, others report tests performed, and others report samples tested. These are not interchangeable measures, even when expressed per 1,000 people. The `tests_units` column helps identify this problem. 【turn554858search0】【turn554858search4】
+2. Testing data collection ended. OWID stopped adding new observations to its COVID-19 testing dataset on June 23, 2022. Therefore, the chart represents reported testing during the available data-collection period, not testing performance today. 【turn554858search3】
+3. The reporting dates may differ. Using the latest available value for each country means that one country's result could come from an earlier date than another's. The code will display the observation date beside each bar.
+4. A high testing rate is not proof of better testing policy. Countries experiencing large outbreaks may conduct more tests. Conversely, the cumulative rate does not show whether testing was timely, accessible, or effective at detecting infections. OWID discusses positivity rate and tests per confirmed case as alternative ways to assess testing relative to the size of an outbreak. 【turn554858search0】
+5. Repeated tests can inflate the rate. Tests per 1,000 people is not the percentage of the population that was tested. One person can be tested multiple times, so a cumulative rate above 1,000 is possible.
+6. Missing data and geography matter. Countries without reported values will be excluded, and some OWID locations may be territories rather than sovereign countries. Missing values must not be interpreted as zero tests.
+
+These limitations mean the chart should be interpreted as a ranking of reported cumulative testing intensity, rather than a definitive ranking of which countries handled COVID-19 best.
+
+## 2. Python code
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# 1. Load the datasetdf = pd.read_csv("owid-covid-data.csv")# 2. Prepare the date and testing-rate columnsdf["date"] = pd.to_datetime(df["date"], errors="coerce")df["total_tests_per_thousand"] = pd.to_numeric(    df["total_tests_per_thousand"], errors="coerce")# 3. Keep country-level locations and the fields needed for analysis.# A non-missing continent generally excludes OWID global and regional aggregates.country_data = df.loc[    df["continent"].notna(),    [        "location",        "continent",        "date",        "total_tests_per_thousand",        "tests_units",    ],].copy()# 4. Exclude observations with missing dates or testing rates.# Negative cumulative rates are not meaningful for this comparison.country_data = country_data.dropna(    subset=["date", "total_tests_per_thousand"])country_data = country_data[    country_data["total_tests_per_thousand"] >= 0]if country_data.empty:    raise ValueError(        "No usable country-level observations were found for "        "'total_tests_per_thousand'."    )# 5. Select each location's latest non-missing reported testing rate.latest = (    country_data
+```
+
+### How to interpret the result
+
+The longest bar represents the location with the highest recorded cumulative testing rate among those included. The date beside each bar tells you when that value was reported, and the printed table shows the reported testing unit.
+
+Treat this as an initial comparison, not a definitive verdict on testing quality. In particular, check the `tests_units` values before interpreting small differences between countries. To study which countries tested most effectively relative to their outbreaks, a separate analysis using `positive_rate` or `tests_per_case` would answer a different and potentially more useful question.

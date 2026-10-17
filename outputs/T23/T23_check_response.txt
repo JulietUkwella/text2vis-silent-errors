@@ -1,0 +1,13 @@
+Problem: The chart makes a cross-country comparison, but it does not ensure that the two measurements are comparable in time.
+
+The main issue is that hospital beds per 1,000 people and cumulative COVID-19 deaths per million people may represent different time periods. Hospital-bed data can come from different source years across countries, while cumulative deaths reflect each country's reported pandemic toll up to its latest available observation. The chart could therefore suggest a relationship between hospital capacity and mortality without accounting for when the capacity was measured or how the pandemic evolved.
+
+OWID documents `hospital_beds_per_thousand` as the most recent value available since 2010, so countries can have bed-capacity figures from different years. Meanwhile, `total_deaths_per_million` is cumulative reported COVID-19 deaths per million people. 【turn649322search1】【turn649322search4】
+
+Other limitations:
+
+- The `last` aggregation does not align dates. Because missing values are skipped independently for each column, a country's two plotted values can come from different dates.
+- The death totals may not be fully comparable. Countries differ in their reporting practices and definitions of COVID-19 deaths. 【turn649322search4】
+- The country filter excludes some European locations. For example, Kosovo's OWID code does not match the three-letter ISO pattern, so it is omitted.
+
+To improve the comparison, use hospital-bed figures from a consistent pre-pandemic reference year, such as 2019 where available, and cumulative deaths measured at a common cutoff date. Interpret the scatter plot as a descriptive association, not evidence that more hospital beds cause lower COVID-19 mortality.

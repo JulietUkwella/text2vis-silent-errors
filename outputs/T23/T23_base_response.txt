@@ -1,0 +1,18 @@
+A scatter plot is a good way to compare hospital bed capacity with COVID-19 deaths across European countries. The x-axis shows hospital beds per 1,000 people, and the y-axis shows cumulative COVID-19 deaths per million people. Using rates rather than raw totals makes comparisons between countries of different population sizes more meaningful.
+
+## Python code
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# 1. Load the COVID-19 datasetdf = pd.read_csv("owid-covid-data.csv")# Convert date to datetime formatdf["date"] = pd.to_datetime(df["date"], errors="coerce")# 2. Keep European countries only.# The 3-letter ISO code filter excludes regional and global aggregates.europe = df[    (df["continent"] == "Europe")    & (df["iso_code"].str.fullmatch(r"[A-Z]{3}", na=False))].copy()# 3. Sort by date so we can select the latest non-missing valueseurope = europe.sort_values("date")# Get the latest available COVID death rate and hospital bed capacitycountry_data = (    europe.groupby(["iso_code", "location"], as_index=False)    .agg(        deaths_per_million=("total_deaths_per_million", "last"),        beds_per_1000=("hospital_beds_per_thousand", "last")    ))# Remove countries missing either measurementplot_df = country_data.dropna(    subset=["deaths_per_million", "beds_per_1000"]).copy()# 4. Create the scatter plotfig, ax = plt.subplots(figsize=(12, 7))ax.scatter(    plot_df["beds_per_1000"],    plot_df["deaths_per_million"],    alpha=0.75,    s=60)# Add median reference linesax.axvline(    plot_df["beds_per_1000"].median(),    linestyle="--",    alpha=0.6,    label="Median hospital bed capacity")ax.axhline(    plot_df["deaths_per_million"].median(),    linestyle=":",    alpha=0.8,    label="Median COVID-19 death rate")# 5. Label countries with the highest death rates# and the lowest hospital bed capacitylabels = pd.concat([    plot_df.nlargest(8, "deaths_per_million"),    plot_df.nsmallest(5, "beds_per_1000")]).drop_duplicates(subset=["iso_code"])for _, row in labels.iterrows():    ax.annotate(        row["location"],        xy=(row["beds_per_1000"], row["deaths_per_million"]),        xytext=(5, 4),        textcoords="offset points",        fontsize=8    )# 6. Add titles, labels, and formattingax.set_title(    "Hospital Bed Capacity vs. COVID-19 Deaths in Europe",    fontsize=15)ax.set_xlabel("Hospital beds per 1,000 people", fontsize=11)ax.set_ylabel("Cumulative COVID-19 deaths per million people", fontsize=11)ax.grid(True, alpha=0.25)ax.legend()plt.tight_layout()plt.show()
+```
+
+## How to interpret the chart
+
+- Upper-left quadrant: Countries with lower hospital bed capacity and higher COVID-19 death rates.
+- Lower-right quadrant: Countries with higher hospital bed capacity and lower death rates.
+- Upper-right quadrant: Countries with both higher hospital bed capacity and higher death rates.
+- Lower-left quadrant: Countries with lower hospital bed capacity and lower death rates.
+
+The dashed and dotted lines indicate the median values across the countries included in the chart.
+
+Important: The chart shows an association, not proof that hospital bed capacity causes higher or lower COVID-19 deaths. Differences in population age, public health policies, vaccination, reporting practices, and other factors may also influence death rates. The chart uses each country's latest available non-missing values, so the most recent reporting dates may differ between countries.

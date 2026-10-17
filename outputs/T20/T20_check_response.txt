@@ -1,0 +1,10 @@
+Problem: The code compares each country’s latest available cumulative reported COVID-19 deaths per million, but those latest observations may come from different dates. Countries that stopped reporting earlier could have lower recorded totals simply because their data are less up to date, potentially biasing the comparison between income groups.
+
+There are two additional limitations:
+
+- Reported deaths may be undercounted differently. Countries vary in their ability to test, register and certify COVID-19 deaths. This can make reported mortality rates less comparable across income groups.
+- The comparison uses medians, not overall group death rates. The chart gives equal weight to each country and compares the median country in each income group. This is appropriate for comparing typical countries, but it does not measure the population-wide death rate for each income group.
+
+To improve the comparison, use a common end date for all countries, clearly define the metric as cumulative reported deaths per million, and consider excess-mortality estimates to account for differences in death reporting. The World Bank income classifications should also be checked against the period being studied.
+
+Conclusion: The chart can answer the narrower question of whether the median country in the low-income group had fewer reported cumulative deaths per million than the median country in the high-income group. However, its results alone do not establish whether low-income countries experienced lower actual COVID-19 mortality.

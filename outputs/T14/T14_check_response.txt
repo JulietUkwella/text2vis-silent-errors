@@ -1,0 +1,13 @@
+Problem: The chart shows cumulative COVID-19 deaths per million people, not the current death rate per million.
+
+The code uses `total_deaths_per_million`, which measures the accumulated number of reported COVID-19 deaths per million people up to each observation date. It does not measure deaths occurring during a recent period. Consequently, the chart compares countries’ cumulative death tolls relative to population, rather than their current death rates.
+
+To show the latest death rate, use `new_deaths_smoothed_per_million` for the latest 7-day average of new deaths per million people, or `new_deaths_per_million` for the latest daily value. Our World in Data defines these separately from the cumulative `total_deaths_per_million` metric.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://github.com\&sz=32)
+
+GitHub
+
+
+
+The country filtering and selection of each country's latest non-missing observation are broadly consistent with the request. However, the latest observation dates may differ between countries, so the comparison is not necessarily based on the same date.

@@ -1,0 +1,10 @@
+Problem: The chart does not make a fully like-for-like comparison of COVID-19 growth across March 2020.
+
+The main issue is that countries are compared over different date ranges. The code uses each country's first and last available observations within March rather than requiring data for March 1 and March 31. The `days >= 25` filter still allows intervals such as March 1–26 or March 6–31. Although the compound daily growth calculation adjusts for the number of days, differences in the timing of each interval can distort the rankings when growth rates change throughout the month.
+
+There are two additional limitations:
+
+- The 100-case starting threshold excludes countries with fewer than 100 cases in their first available March observation. A country that started with a small outbreak but experienced very rapid growth could therefore be omitted, even if it would otherwise rank highly.
+- The chart measures relative growth, not absolute growth. A high compound daily growth percentage does not necessarily mean the country added the most confirmed cases.
+
+To make the comparison more consistent, use the same start and end dates for all countries, define whether “fastest” means relative or absolute growth, and clearly state any minimum-case threshold. As written, the chart answers a narrower question: which eligible countries had the highest estimated compound daily growth in confirmed cases over their available March observation periods?

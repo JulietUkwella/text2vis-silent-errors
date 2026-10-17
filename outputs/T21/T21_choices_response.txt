@@ -1,0 +1,40 @@
+The key is to define what “deadliest” means before calculating a ranking. The code below interprets it as the country or territory with the highest cumulative number of reported COVID-19 deaths across the entire available dataset.
+
+## 1. Analytical choices and why
+
+| Analytical choice                             | Option I would choose                                                     | Reason                                                                                                                                                                                                                   |
+| --------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Measure of deadliness                         | `total_deaths`                                                            | Measures the total reported death toll, directly answering which location had the most deaths.                                                                                                                           |
+| Absolute totals or population-adjusted rates? | Absolute totals                                                           | The question asks which country had the largest overall toll. This tends to favor more populous countries. `total_deaths_per_million` would be more suitable for comparing the death burden relative to population size. |
+| Time period                                   | The full period in the CSV                                                | The question does not specify a particular wave or year, so I would compare the cumulative toll across the available data.                                                                                               |
+| Which date to use?                            | The latest date with a non-missing `total_deaths` value for each location | The column is cumulative, so the latest reported value is more appropriate than adding values across dates.                                                                                                              |
+| Which rows to include?                        | Locations with standard three-letter ISO country codes                    | This excludes aggregate rows such as World and continent-level totals, which would otherwise distort the country ranking. However, it can include territories and dependencies, not just sovereign states.               |
+| Missing data                                  | Exclude rows without a usable date or death total                         | Missing deaths should not be treated as zero. Locations without any usable death totals cannot be ranked.                                                                                                                |
+| How many locations to show?                   | The top 10                                                                | A horizontal bar chart makes the leading location easy to identify while still providing useful context.                                                                                                                 |
+
+### What could make the chart misleading?
+
+- Population size: A country with more people can have a higher death toll even if its per-capita death burden is lower.
+- Differences in reporting: Countries vary in how they define, record, and report COVID-19 deaths. Some deaths may be missed entirely.
+- Unequal data coverage: The latest available observation may be from a different date for each country. If reporting has stopped for a location, its latest value may be outdated.
+- Revisions to historical figures: Reported cumulative totals can be revised downward or upward. Using the latest non-missing value reflects the latest figure in the file, not necessarily the historical maximum.
+- Country versus territory definitions: Standard ISO three-letter codes include some territories and dependencies. A strictly sovereign-country ranking would require a curated list of sovereign states.
+- Deaths versus infection risk: Total deaths do not measure the probability that an infected person will die. That would require other measures and a different analysis.
+
+Interpretation: This chart answers which location had the largest reported cumulative death toll, not necessarily which had the worst outbreak per capita.
+
+## 2. Python code using pandas and matplotlib
+
+Save the following code in the same folder as `owid-covid-data.csv`, then run it. It will display the top 10 locations and print the location with the highest reported cumulative death toll.
+
+```
+import pandas as pdimport matplotlib.pyplot as pltfrom matplotlib.ticker import StrMethodFormatter# 1. Load the datasetdf = pd.read_csv("owid-covid-data.csv")# 2. Prepare the fields used in the analysisdf["date"] = pd.to_datetime(df["date"], errors="coerce")df["total_deaths"] = pd.to_numeric(    df["total_deaths"], errors="coerce")# 3. Keep country/territory rows with standard three-letter ISO codes.# This excludes aggregate rows such as World and continents.iso3_mask = (    df["iso_code"]    .astype("string")    .str.upper()    .str.fullmatch(r"[A-Z]{3}", na=False))locations = df.loc[    iso3_mask,    ["iso_code", "location", "date", "total_deaths"]].copy()# 4. Keep observations with a usable date and cumulative death totallocations = locations.dropna(    subset=["date", "total_deaths"])if locations.empty:    raise ValueError(        "No country/territory rows with valid dates and death totals "        "were found. Check the CSV file and its columns."    )# 5. For each ISO code, take the latest non-missing cumulative death total.# Do not sum total_deaths across dates: it is already cumulative.latest = (    locations    .sort_values(["iso_code", "date"])    .groupby("iso_code", sort=False)    .tail(1))# 6. Select the 10 locations with the highest reported death tolltop10 = (    latest    .nlargest(10, "total_deaths")    .sort_values("total_deaths"))# 7. Plot a horizontal bar chartfig, ax = plt.subplots(figsize=(11, 7))bars = ax.barh(    top10["location"],    top10["total_deaths"]
+```
+
+## 3. How to read the result
+
+The longest bar identifies the location with the highest reported cumulative COVID-19 death toll in your CSV. The printed result also gives its latest usable observation date.
+
+The code deliberately selects the latest non-missing cumulative value for each location rather than summing `total_deaths` across rows. Summing a cumulative variable would repeatedly count deaths from earlier dates and produce an invalid comparison.
+
+One final consideration: if your goal is to identify which country was hit hardest relative to its population, repeat the analysis using `total_deaths_per_million` instead. That would answer a different, but equally useful, question.

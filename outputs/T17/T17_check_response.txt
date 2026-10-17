@@ -1,0 +1,11 @@
+Problem: The chart does not reliably identify which countries were best at testing for COVID-19. The main issue is that tests per confirmed case is not a direct measure of testing quality or overall testing effort. A high ratio can indicate that a country tested extensively relative to the number of detected cases, but it can also reflect low disease prevalence or differences in testing and case-reporting practices.
+
+There are also two important comparison problems:
+
+1\. Different dates are compared. The code selects each country's latest non-missing value, but those values may come from different dates and different phases of the pandemic. A country measured during a low-case period could rank above one measured during a major outbreak. OWID's historical testing dataset stopped receiving new data on June 23, 2022, so “latest” does not necessarily mean recent. [OWID testing data](https://ourworldindata.org/covid-testing-data-archived?utm_source=chatgpt.com)
+
+2\. Testing is not measured consistently across countries. Some countries report the number of tests performed, while others report people tested or samples tested. Since one person can be tested multiple times, these measures are not directly comparable. [OWID testing documentation](https://ourworldindata.org/coronavirus-testing?utm_source=chatgpt.com)
+
+Also, `tests_per_case` represents tests per new confirmed case, calculated as a seven-day rolling average—not cumulative tests divided by cumulative cases. The chart's title and axis label should reflect that distinction. [OWID variable definition](https://github.com/owid/covid-19-data/blob/master/public/data/README.md?utm_source=chatgpt.com)
+
+How to improve it: Compare countries over the same specified time period, check that their testing units are comparable, and describe the result as testing intensity relative to detected cases rather than an overall ranking of testing performance.

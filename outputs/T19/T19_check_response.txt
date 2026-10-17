@@ -1,0 +1,15 @@
+Problem: The chart produces a reasonable descriptive scatterplot, but it does not reliably answer whether richer countries handled COVID-19 better.
+
+The main problems are:
+
+1\. Countries may be compared at different dates. The code drops rows with missing GDP or death data before selecting the latest observation for each country. Consequently, each country’s value is its latest observation with available data, not necessarily its value on a common date. Because the measure is cumulative deaths per million, differences in reporting periods can affect comparisons.
+
+2\. Reported COVID-19 deaths are not measured consistently across countries. Countries differ in their definitions of COVID-19 deaths, testing capacity, death registration and reporting completeness. Reported deaths may therefore underestimate the true toll to different degrees. Excess mortality can help capture deaths missed by official COVID-19 statistics.
+
+3\. Deaths per million do not account for differences in population age. Older populations generally face greater risks of dying from COVID-19. Since countries differ substantially in age structure, a comparison without age standardization may make countries with older populations appear to have handled the pandemic worse.
+
+4\. Correlation does not establish how well a country handled the pandemic. A relationship between GDP per capita and reported deaths per million does not show that wealth caused better or worse outcomes. Age structure, vaccination, public-health policies, healthcare capacity and other factors can influence mortality.
+
+What the code does correctly: It excludes regional aggregates, uses deaths per million to account for population size, and applies a logarithmic GDP axis to accommodate differences in national income. Calculating the correlation using log GDP is also consistent with that axis.
+
+How to improve it: Compare countries over a common period, use more comparable mortality measures—ideally age-standardized excess mortality—and account for important confounding factors. The resulting analysis would provide stronger evidence about whether richer countries experienced lower pandemic mortality, although it still would not establish causation on its own.

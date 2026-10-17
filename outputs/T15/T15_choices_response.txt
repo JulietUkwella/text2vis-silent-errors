@@ -1,0 +1,71 @@
+## 1. Analytical choices to make before plotting
+
+The main challenge is choosing a measure of restriction strictness and ensuring that the data actually supports a comparison across countries in 2023.
+
+Important data limitation: The Oxford COVID-19 Government Response Tracker, which supplies the `stringency_index`, has data for almost all jurisdictions through December 31, 2022. Data for individual Chinese provinces extends to February 28, 2023. This means your CSV may not contain enough observations to compare countries reliably for all of 2023. The code below checks for that rather than presenting a misleading chart. 【turn437663search11】
+
+### Choice 1: Which measure should represent restriction strictness?
+
+Choose: `stringency_index`.
+
+This index ranges from 0 to 100, with higher values indicating stricter government policies. It combines policy indicators such as school and workplace closures, restrictions on gatherings, stay-at-home requirements, and travel controls. 【turn437663search0】
+
+The other columns, such as `total_cases`, `new_deaths`, and `reproduction_rate`, measure the pandemic itself rather than the strictness of government restrictions.
+
+Potential limitation: The index measures recorded government policy, not how effectively restrictions were enforced, whether people complied, or whether the policies were effective. Where policies differed between subnational regions, the index could reflect the strictest region rather than the experience of a typical resident. 【turn437663search0】
+
+### Choice 2: Should we use totals, rates, or averages?
+
+Choose: The mean of each country's daily `stringency_index` values during 2023.
+
+The index is already on a common 0–100 scale, so population adjustment is not necessary for comparing its values. Summing daily scores would produce a number that depends on how many observations are available, rather than a clear measure of strictness.
+
+A mean represents the typical recorded policy strictness across the observed days of the year. However, the mean alone does not show whether a country maintained moderate restrictions all year or had a few periods of very strict restrictions.
+
+### Choice 3: Which dates should be included?
+
+Choose: January 1 through December 31, 2023, inclusive.
+
+This directly addresses the question. I would not substitute 2022 simply to obtain a more complete chart without clearly changing the question.
+
+There are 365 calendar days in 2023. The code uses this as the denominator for measuring data coverage.
+
+### Choice 4: Which rows should be included?
+
+Choose: Country and territory records with a non-missing `continent`, excluding aggregate rows such as the world or income groups.
+
+The dataset contains both individual locations and aggregate locations. Including both could count regional aggregates as if they were additional countries. Filtering out rows without a continent helps avoid that problem, while allowing locations that the dataset classifies as countries or territories.
+
+The code also removes duplicate location-date records, if any exist.
+
+### Choice 5: How should missing data be handled?
+
+Choose: Require at least 330 observed daily stringency scores out of 365, or approximately 90% coverage, before including a country in the strictness comparison.
+
+This reduces the risk of treating a short period of available data as representative of an entire year. Missing values should not be treated as zero: a missing score does not necessarily mean that no restrictions were in place.
+
+Potential limitation: Even with a coverage threshold, the available observations might not be representative of missing days. Moreover, because the underlying policy data largely ends in 2022, few or no countries may pass the threshold for 2023.
+
+### Choice 6: What chart should be used?
+
+Choose: A sorted horizontal bar chart.
+
+Each bar will represent one country's average daily stringency index. Countries with higher averages will appear toward the top, making comparisons straightforward.
+
+If no countries meet the data-coverage requirement, the code will instead plot a data-availability diagnostic—or display a clear message if there are no recorded scores. That fallback is intentional: a chart of incomplete data should not be mistaken for a valid comparison of restriction strictness.
+
+## 2. Python code
+
+The following code uses pandas to load and prepare the data and matplotlib to draw the chart.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# --------------------------------------------------# 1. Load and prepare the data# --------------------------------------------------FILE = "owid-covid-data.csv"df = pd.read_csv(FILE, parse_dates=["date"])# Ensure the policy measure is numeric.df["stringency_index"] = pd.to_numeric(    df["stringency_index"], errors="coerce")# Select the requested period: all of 2023.year_data = df.loc[    (df["date"] >= "2023-01-01")    & (df["date"] < "2024-01-01")].copy()# Keep country/territory locations rather than aggregate rows.# In this dataset, aggregate locations generally have no continent.country_data = year_data.loc[    year_data["continent"].notna()    & year_data["iso_code"].notna()].copy()# The dataset should have one row per location per date.# Remove duplicate country-date records to avoid double-counting.country_data = country_data.drop_duplicates(    subset=["iso_code", "date"])# --------------------------------------------------# 2. Calculate the annual average and data coverage# --------------------------------------------------DAYS_IN_2023 = 365MIN_DAYS_REQUIRED = 330  # Approximately 90% coveragecountry_summary = (
+```
+
+## 3. How to interpret the result
+
+If the main bar chart appears, compare the countries' average scores: a higher bar indicates stricter recorded COVID-19 policies on average during the observed days in 2023. Check the coverage requirement in the subtitle before drawing conclusions.
+
+If the code produces a data-availability chart or the insufficiency message, that is an important finding rather than a coding failure. Your dataset does not support a reliable full-year, cross-country comparison using this measure.
+
+For a meaningful comparison of 2023 restrictions, you would need a source containing sufficiently complete 2023 policy data. The existing `stringency_index` column alone cannot fill in policy observations that were never collected.

@@ -1,0 +1,9 @@
+The following Python code uses `pandas` to load `owid-covid-data.csv`, filters the data for the United States during 2023, and uses `matplotlib` to plot daily new COVID-19 cases over time.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# Load the COVID-19 datasetdf = pd.read_csv("owid-covid-data.csv")# Convert the date column to datetime formatdf["date"] = pd.to_datetime(df["date"])# Filter data for the United States during 2023us_2023 = df[    (df["location"] == "United States") &    (df["date"].dt.year == 2023)].copy()# Sort the data by dateus_2023 = us_2023.sort_values("date")# Create the chartplt.figure(figsize=(12, 6))plt.plot(    us_2023["date"],    us_2023["new_cases"],    label="Daily new COVID-19 cases",    color="blue")# Add chart labels and titleplt.title("Daily New COVID-19 Cases in the United States (2023)")plt.xlabel("Date")plt.ylabel("Number of New Cases")plt.grid(True, alpha=0.3)plt.legend()plt.xticks(rotation=45)plt.tight_layout()# Display the chartplt.show()
+```
+
+How to interpret the chart: The x-axis shows dates throughout 2023, and the y-axis shows the number of newly reported COVID-19 cases. Peaks indicate periods with higher reported case counts, while declines indicate fewer reported cases.
+
+Note: The chart uses `new_cases`, which may contain missing values or reporting fluctuations. For a smoother view of trends, replace `us_2023["new_cases"]` in the plot with `us_2023["new_cases_smoothed"]`, which represents the seven-day smoothed average.
