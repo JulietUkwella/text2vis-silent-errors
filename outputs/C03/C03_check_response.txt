@@ -1,0 +1,5 @@
+Problem: The code selects the latest available record separately for each country, so `total_deaths_per_million` may refer to different dates across countries. Because this is a cumulative measure, the plotted values may cover different reporting periods, making cross-country comparisons less consistent.
+
+There is also a technical concern: pandas `groupby(...).last()` skips missing values independently for each column, potentially combining values from different rows. Although `median_age` is generally static, selecting actual rows is safer.
+
+For a more consistent comparison, choose a common cutoff date, select each country's latest actual record on or before that date, and exclude rows missing either variable. The existing ISO-code filter is an appropriate way to exclude the usual OWID regional and income-group aggregates.

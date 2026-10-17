@@ -1,0 +1,7 @@
+Correct. The code filters the dataset to Germany and dates from January 1, 2021, up to but not including January 1, 2022, then plots `new_cases_smoothed` against the date. This column already contains the 7-day-smoothed number of new cases, so calculating another average is unnecessary.
+
+The date filter is correct, the rows are sorted chronologically, and no countries or time periods are inadvertently combined. OWID defines `new_cases_smoothed` as new confirmed cases, 7-day smoothed.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://github.com\&sz=32)
+
+GitHub

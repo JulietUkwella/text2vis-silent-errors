@@ -1,0 +1,42 @@
+## 1. Analytical choices and rationale
+
+Before plotting the data, we need to make the following decisions so that the chart answers the question clearly and accurately.
+
+| Analytical choice         | Option selected                                   | Reason                                                                                                                                                                 |
+| ------------------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Measure of COVID-19 cases | `new_cases_smoothed`                              | The question explicitly requests the 7-day average. This column already contains smoothed daily new-case counts, so we should not apply another smoothing calculation. |
+| Counts or rates           | Absolute number of cases per day                  | The requested column measures daily case counts. We will not use `new_cases_smoothed_per_million`, which adjusts for population size.                                  |
+| Geographic selection      | Rows where `location == "Germany"`                | This selects Germany's national data rather than other countries or regional and global aggregates.                                                                    |
+| Time period               | January 1 through December 31, 2021, inclusive    | This captures the entire calendar year requested.                                                                                                                      |
+| Time granularity          | Daily observations                                | We want to show how the smoothed daily number of cases changes over the year, rather than aggregate it into monthly or weekly totals.                                  |
+| Smoothing method          | Use the existing `new_cases_smoothed` column      | The dataset has already calculated the 7-day smoothing, avoiding an unnecessary second smoothing operation.                                                            |
+| Missing observations      | Preserve missing values as gaps                   | Missing values should not be silently replaced with zero, because missing data does not necessarily mean there were no cases.                                          |
+| Rows to include           | Germany's observations within the specified dates | Other countries and dates outside 2021 are excluded. We will sort the observations chronologically before plotting.                                                    |
+| Chart type                | Line chart                                        | A line chart makes it easy to see waves, peaks, and declines in reported cases over time.                                                                              |
+
+## 2. What could make the chart misleading?
+
+Several limitations should be considered when interpreting the resulting chart.
+
+- Reported cases are not all actual infections. The data records reported COVID-19 cases, and some infections may never have been tested or reported.
+- Reporting practices change. Testing availability, public behaviour, reporting delays, and changes in case definitions can affect reported case counts independently of the actual spread of the virus.
+- Smoothing hides short-term fluctuations. The 7-day average reduces day-to-day noise, but it can also make abrupt increases or decreases less obvious.
+- Absolute counts do not account for population size. This is appropriate for Germany's case trajectory, but the chart should not be used to compare the severity of outbreaks between countries of different sizes. A per-million measure would be more appropriate for that purpose.
+- Missing data can create gaps. Missing values should remain missing rather than be treated as zero. Dates absent from the source data should also be represented so that the line does not misleadingly bridge missing observations.
+- Historical numbers can be revised. Case counts and their smoothed values may change when the underlying data is updated or cases are retrospectively reported.
+
+One important detail: because `new_cases_smoothed` is already provided, we should filter the data to 2021 without recalculating the rolling average after filtering. This preserves the dataset's existing smoothing at the beginning of the year.
+
+## 3. Python code
+
+The following code uses `pandas` to load and filter the CSV file and `matplotlib` to plot Germany's 7-day average of new reported COVID-19 cases during 2021.
+
+```
+import pandas as pdimport matplotlib.pyplot as pltimport matplotlib.dates as mdates# 1. Load the datasetdf = pd.read_csv("owid-covid-data.csv", low_memory=False)# 2. Convert the relevant columns to the correct data typesdf["date"] = pd.to_datetime(df["date"], errors="coerce")df["new_cases_smoothed"] = pd.to_numeric(    df["new_cases_smoothed"], errors="coerce")# 3. Select Germany's observations and the required columnsgermany = df.loc[    df["location"].eq("Germany"),    ["date", "new_cases_smoothed"]].dropna(subset=["date"])# 4. Filter to the calendar year 2021 and sort chronologicallygermany_2021 = (    germany.loc[        germany["date"].between("2021-01-01", "2021-12-31")    ]    .sort_values("date")    .set_index("date"))# Check that the dataset contains usable observations for this periodif germany_2021.empty:    raise ValueError(        "No observations for Germany were found during 2021."    )if germany_2021["new_cases_smoothed"].notna().sum() == 0:    raise ValueError(        "No valid new_cases_smoothed values were found for Germany in 2021."    )# 5. Include every calendar day so missing dates appear as gapsall_dates = pd.date_range(    start="2021-01-01",    end="2021-12-31",    freq="D")germany_2021 = germany_2021.reindex(all_dates)germany_2021.index.name = "date"# 6. Create the line chartfig, ax = plt.subplots(figsize=(12, 6))ax.plot(    germany_2021.index,    germany_2021["new_cases_smoothed"],    linewidth=2,    label="7-day average")# 7. Add chart title, axis labels, and formattingax.set_title(    "7-Day Average of New COVID-19 Cases in Germany (2021)",    fontsize=14)ax.set_xlabel("Date")ax.set_ylabel("Average new reported cases per day")# Display one tick per monthax.xaxis.set_major_locator(mdates.MonthLocator())ax.xaxis.set_major_formatter(mdates.DateFormatter("%b"))ax.set_xlim(    pd.Timestamp("2021-01-01"),    pd.Timestamp("2021-12-31"))ax.grid(True, alpha=0.3)ax.legend()fig.tight_layout()# 8. Display the chartplt.show()
+```
+
+### How to interpret the chart
+
+The horizontal axis represents dates throughout 2021, and the vertical axis represents the average number of new reported COVID-19 cases per day over a 7-day period. Rising sections indicate increasing reported case counts, peaks indicate periods of high case reporting, and falling sections indicate declining reported case counts.
+
+The code uses the supplied smoothed values directly and preserves gaps in the data, helping the chart represent the recorded observations without introducing an additional smoothing calculation or treating missing values as zero.

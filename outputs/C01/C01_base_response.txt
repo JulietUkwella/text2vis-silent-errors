@@ -1,0 +1,7 @@
+Here is Python code using pandas and matplotlib to plot Germany’s 7-day average of new COVID-19 cases during 2021, using the `new_cases_smoothed` column.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# Load the COVID-19 datasetdf = pd.read_csv("owid-covid-data.csv")# Convert the date column to datetimedf["date"] = pd.to_datetime(df["date"])# Filter for Germany during 2021germany_2021 = df[    (df["location"] == "Germany") &    (df["date"] >= "2021-01-01") &    (df["date"] < "2022-01-01")].copy()# Sort data by dategermany_2021 = germany_2021.sort_values("date")# Plot the 7-day average of new casesplt.figure(figsize=(12, 6))plt.plot(    germany_2021["date"],    germany_2021["new_cases_smoothed"],    label="7-day average of new cases")# Add chart labels and formattingplt.title("7-Day Average of New COVID-19 Cases in Germany (2021)")plt.xlabel("Date")plt.ylabel("New cases (7-day average)")plt.legend()plt.grid(True, alpha=0.3)plt.xticks(rotation=45)plt.tight_layout()
+```
+
+How it works: The code filters the dataset to Germany and dates in 2021, then plots `new_cases_smoothed`, which already represents the 7-day smoothed average of new cases. Therefore, no additional rolling average calculation is needed.

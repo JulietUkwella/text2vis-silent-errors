@@ -1,0 +1,46 @@
+## 1. Analytical choices and rationale
+
+Before plotting, we need to decide how to define a country, which observations to use, and how to handle incomplete or potentially misleading data.
+
+| Analytical choice     | Decision                                                                          | Reason                                                                                                                                                               |
+| --------------------- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Measure of age        | `median_age`                                                                      | This is the demographic measure specified in the question, expressed in years.                                                                                       |
+| Measure of deaths     | `total_deaths_per_million`                                                        | A rate adjusts for differences in population size, making countries more comparable than raw death totals.                                                           |
+| Time period           | Latest available observation for each country with both required measures present | No particular date is specified, so the latest usable record provides a current-as-available comparison.                                                             |
+| Rows to include       | Country-level records only                                                        | Use standard three-letter country ISO codes, plus Kosovo if represented by the special code `OWID_KOS`. This excludes regional, global, and income-group aggregates. |
+| One point per country | Keep the latest usable row for each `iso_code`                                    | Prevents a country from appearing multiple times because it has observations for many dates.                                                                         |
+| Missing values        | Drop rows missing either `median_age` or `total_deaths_per_million`               | A point cannot be plotted meaningfully without both measurements. Do not impute missing values.                                                                      |
+| Axis scaling          | Use linear axes initially                                                         | This keeps the death rate easy to interpret in deaths per million. Highly skewed values may make a logarithmic version useful as a supplementary chart.              |
+| Interpretation        | Examine association, not causation                                                | A scatter plot can show whether older populations tend to have higher recorded death rates, but cannot establish that age causes the difference.                     |
+
+### What could make the chart misleading?
+
+1. Countries may have different reporting dates. The latest available observation can vary by country, so this is not necessarily a comparison on a single common date.
+2. Reported deaths are not perfectly comparable. Countries differ in death registration, testing, definitions of COVID-related deaths, and reporting completeness. Deaths per million adjusts for population size but not these differences.
+3. The relationship may be affected by other factors. Healthcare capacity, vaccination, epidemic timing, public-health measures, and population health may also influence death rates.
+4. The distribution may be highly skewed. A few countries with very high death rates may compress most points near the bottom of a linear-scale chart. A logarithmic y-axis can help reveal patterns, although zero values cannot be plotted directly on a log scale.
+5. Median age is only a summary of the age distribution. Two countries with the same median age can have different proportions of elderly people or other demographic characteristics.
+
+The code below uses the latest usable observation per country, retains Kosovo if it has the special OWID code, and displays one point per included country.
+
+## 2. Python code
+
+Install the required libraries first, if necessary:
+
+```
+pip install pandas matplotlib
+```
+
+Then run:
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# --------------------------------------------------# 1. Load the dataset# --------------------------------------------------df = pd.read_csv(    "owid-covid-data.csv",    parse_dates=["date"])# Make sure the variables used in the plot are numeric.for col in ["median_age", "total_deaths_per_million"]:    df[col] = pd.to_numeric(df[col], errors="coerce")# --------------------------------------------------# 2. Keep country-level rows# --------------------------------------------------# Standard three-letter ISO codes identify country rows.# OWID_KOS is included as an exception for Kosovo.iso = df["iso_code"].astype("string")is_country = iso.str.fullmatch(r"[A-Z]{3}", na=False)is_kosovo = iso.eq("OWID_KOS")countries = df[is_country | is_kosovo].copy()# --------------------------------------------------# 3. Remove rows missing the required measurements# --------------------------------------------------usable = countries.dropna(    subset=[        "date",        "median_age",        "total_deaths_per_million"    ])# --------------------------------------------------# 4. Keep the latest usable observation per country# --------------------------------------------------latest = (    usable    .sort_values("date")    .groupby("iso_code", group_keys=False)    .tail(1)    .copy())# Sort for a consistent output.latest = latest.sort_values("location")# Check that there is only one point per country.assert latest["iso_code"].is_uniqueprint(f"Number of countries plotted: {len(latest)}")print(f"Latest observation dates range from "      f"{latest['date'].min().date()} to "      f"{latest['date'].max().date()}")# --------------------------------------------------# 5. Create the scatter plot# --------------------------------------------------fig, ax = plt.subplots(figsize=(10, 6))ax.scatter(    latest["median_age"],    latest["total_deaths_per_million"],    alpha=0.7,    s=45,    edgecolors="white",    linewidths=0.5)ax.set_title(    "Median Age vs. Total COVID-19 Deaths per Million by Country")ax.set_xlabel("Median age (years)")ax.set_ylabel("Total COVID-19 deaths per million people")ax.grid(True, alpha=0.25)plt.tight_layout()plt.show()
+```
+
+### How to interpret the result
+
+Each dot represents one country. The horizontal position indicates its median age, while the vertical position indicates its cumulative recorded COVID-19 deaths per million people in its latest usable observation.
+
+An upward pattern would indicate a positive association between median age and recorded death rates across countries. A weak or scattered pattern would indicate that median age alone does not closely explain the differences.
+
+Important: This is a descriptive comparison, not a controlled statistical analysis. Because countries can have different observation dates and reporting practices, any apparent relationship should be interpreted cautiously.

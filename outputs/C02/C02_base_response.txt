@@ -1,0 +1,5 @@
+```
+import pandas as pdimport matplotlib.pyplot as plt# Load the COVID-19 datasetdf = pd.read_csv("owid-covid-data.csv")# Convert date column to datetimedf["date"] = pd.to_datetime(df["date"])# Select the four countriescountries = ["France", "Germany", "Italy", "Spain"]df = df[df["location"].isin(countries)]# Plot total COVID-19 deaths per million over timeplt.figure(figsize=(12, 6))for country in countries:    country_data = df[df["location"] == country].sort_values("date")    plt.plot(        country_data["date"],        country_data["total_deaths_per_million"],        label=country    )# Add chart labels and formattingplt.title("Total COVID-19 Deaths per Million Over Time")plt.xlabel("Date")plt.ylabel("Total Deaths per Million People")plt.legend()plt.grid(True, linestyle="--", alpha=0.5)plt.tight_layout()# Display the chartplt.show()
+```
+
+How it works: The code loads the CSV using pandas, converts the `date` column to datetime format, filters the data to France, Germany, Italy, and Spain, and plots each country's `total_deaths_per_million` as a separate line using matplotlib. The legend identifies each country, allowing you to compare trends over time.

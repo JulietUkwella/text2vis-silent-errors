@@ -1,0 +1,46 @@
+## 1. Analytical choices and assumptions
+
+The question specifies the four countries and the measure to plot, but several analytical decisions still need to be made.
+
+| Analytical choice                 | Choice for this chart                       | Why                                                                                                                                                             |
+| --------------------------------- | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Measure                           | `total_deaths_per_million`                  | This is the requested measure and adjusts for differences in population size.                                                                                   |
+| Cumulative totals or daily deaths | Cumulative deaths per million               | `total_deaths_per_million` measures accumulated reported deaths, rather than deaths occurring each day. The daily equivalent would be `new_deaths_per_million`. |
+| Time period                       | All available dates in the CSV              | This shows the full history contained in the supplied file without arbitrarily choosing a start or end date.                                                    |
+| Countries to include              | France, Germany, Italy and Spain            | Filter the `location` column using exact country names to avoid accidentally including aggregate entries such as continents or the world.                       |
+| Population adjustment             | Use the existing per-million column         | The dataset already provides the population-normalized measure, so there is no need to calculate it again using `total_deaths` and `population`.                |
+| Missing values                    | Leave them missing; do not interpolate      | Filling gaps could introduce values that were not reported in the source data. Matplotlib will show breaks where values are missing.                            |
+| Date ordering                     | Sort each country's records chronologically | The CSV may not be sorted by date, and a time-series line chart must connect observations in chronological order.                                               |
+| Duplicate records                 | Check for duplicate country-date pairs      | Since the dataset is expected to have one row per location per date, duplicates should be investigated rather than silently counted twice.                      |
+| Chart scale                       | One shared vertical axis starting at zero   | A common scale makes the countries easier to compare, and the zero baseline provides context for the magnitude of their cumulative totals.                      |
+| Presentation                      | Four lines on a single chart                | This makes it possible to compare the timing and overall progression of reported deaths across the countries.                                                   |
+
+### What could make the chart misleading?
+
+Before interpreting the results, keep these limitations in mind:
+
+- Reported deaths are not necessarily all deaths attributable to COVID-19. Countries may differ in their death-reporting practices, definitions and completeness. These differences can affect comparisons.
+- Per-million rates do not account for population age structure. Older populations, for example, may experience different mortality patterns. The chart is population-normalized, but it is not age-standardized.
+- The measure is cumulative. A rising line indicates an increase in the accumulated reported total, not necessarily a rise in the current daily death rate. A plateau indicates little or no change in the reported cumulative total.
+- Reporting revisions can cause declines. Although cumulative totals generally rise, retrospective corrections can produce decreases in the recorded per-million figures. These should not automatically be interpreted as negative deaths.
+- Missing data may occur at the beginning or end of a country's series, or between observations. The chart should not imply that an unreported value is zero or that an interpolated estimate is an actual observation.
+- The dataset is a snapshot. Its most recent available date depends on when the CSV was downloaded. The chart's endpoint should not be assumed to represent current conditions.
+- The population denominator matters. Per-million figures are based on the dataset's population estimates; differences in population sources or estimates can affect the rates slightly.
+
+Given these limitations, the chart is most useful for comparing the reported cumulative mortality trends in the four countries, rather than establishing that one country's public-health response was better than another's.
+
+## 2. Python code using pandas and matplotlib
+
+The following code loads `owid-covid-data.csv`, filters the four countries, checks for duplicate country-date records, and plots the cumulative deaths per million over the entire available period.
+
+```
+import pandas as pdimport matplotlib.pyplot as pltimport matplotlib.dates as mdates# --------------------------------------------------# 1. Load the dataset# --------------------------------------------------file_path = "owid-covid-data.csv"df = pd.read_csv(file_path)# Convert dates to datetime values.# Unparseable dates become missing values.df["date"] = pd.to_datetime(df["date"], errors="coerce")# Ensure the measure is numeric.# Missing or invalid values become NaN.df["total_deaths_per_million"] = pd.to_numeric(    df["total_deaths_per_million"],    errors="coerce")# --------------------------------------------------# 2. Select the four countries# --------------------------------------------------countries = ["France", "Germany", "Italy", "Spain"]plot_df = df.loc[    df["location"].isin(countries),    ["location", "date", "total_deaths_per_million"]].copy()# Exclude rows with invalid dates.# Do not remove missing death-rate values: keeping them as NaN# allows the plot to show gaps rather than inventing data.plot_df = plot_df.dropna(subset=["date"])if plot_df.empty:    raise ValueError(        "No matching country records found. "        "Check the CSV file and the location names."    )# --------------------------------------------------# 3. Check for duplicate country-date records# --------------------------------------------------duplicates = plot_df.duplicated(    subset=["location", "date"],    keep=False)if duplicates.any():
+```
+
+### How to interpret the resulting chart
+
+Each line represents one country, with date on the horizontal axis and cumulative reported COVID-19 deaths per million people on the vertical axis.
+
+A steeper upward segment indicates a faster increase in cumulative reported deaths per million during that period. A higher line indicates a higher accumulated reported death toll relative to population, according to the dataset. These differences should be interpreted alongside the reporting and population limitations described above.
+
+The code deliberately uses the entire date range available in the CSV and does not fill missing observations, smooth the data further, or calculate new estimates. This keeps the chart faithful to the supplied dataset.

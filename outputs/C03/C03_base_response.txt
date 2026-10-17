@@ -1,0 +1,7 @@
+```
+import pandas as pdimport matplotlib.pyplot as plt# Load the datasetdf = pd.read_csv("owid-covid-data.csv")# Keep country rows only, excluding regional and income-group aggregates.# OWID aggregate rows generally have ISO codes beginning with OWID_.countries = df[~df["iso_code"].str.startswith("OWID_", na=False)].copy()# Select the latest available record for each countrycountries["date"] = pd.to_datetime(countries["date"])latest = (    countries.sort_values("date")    .groupby("location", as_index=False)    .last())# Keep rows with valid values for both variablesplot_data = latest.dropna(subset=["median_age", "total_deaths_per_million"])# Create the scatter plotplt.figure(figsize=(10, 6))plt.scatter(    plot_data["median_age"],    plot_data["total_deaths_per_million"],    alpha=0.7)plt.title("Median Age vs. Total COVID-19 Deaths per Million")plt.xlabel("Median Age (years)")plt.ylabel("Total COVID-19 Deaths per Million")plt.grid(True, linestyle="--", alpha=0.4)plt.tight_layout()plt.show()
+```
+
+How it works: The code excludes aggregate rows with ISO codes beginning with `OWID_`, selects the latest available record for each country, removes rows with missing values, and plots median age against total COVID-19 deaths per million.
+
+Note: The latest record may come from a different date for each country. This approach uses each country's most recently reported values rather than requiring a common reporting date.
