@@ -1,0 +1,17 @@
+You can answer this question by plotting the United Kingdom’s daily new COVID-19 deaths and cumulative vaccination coverage over time. Using a seven-day rolling average for deaths helps smooth out reporting fluctuations.
+
+The following Python code uses `pandas` and `matplotlib` to load `owid-covid-data.csv`, filter the United Kingdom, and create a chart with two y-axes.
+
+```
+import pandas as pdimport matplotlib.pyplot as pltimport matplotlib.dates as mdates# Load the datasetdf = pd.read_csv("owid-covid-data.csv")# Convert date column to datetimedf["date"] = pd.to_datetime(df["date"])# Filter data for the United Kingdomuk = df[df["location"] == "United Kingdom"].copy()uk = uk.sort_values("date")# Calculate the 7-day rolling average of daily deathsuk["deaths_7day_avg"] = uk["new_deaths"].rolling(    window=7, min_periods=1).mean()# Use vaccination coverage (% of population fully vaccinated)uk["vaccination_pct"] = uk["people_fully_vaccinated_per_hundred"]# Create the chartfig, ax1 = plt.subplots(figsize=(14, 7))# Plot daily deaths on the first y-axisax1.plot(    uk["date"],    uk["deaths_7day_avg"],    color="firebrick",    linewidth=2,    label="Daily deaths (7-day average)")ax1.set_xlabel("Date")ax1.set_ylabel("Daily deaths (7-day average)", color="firebrick")
+```
+
+## How to interpret the chart
+
+Look at how the red line (the seven-day average of new deaths) changes as the blue line (vaccination coverage) rises.
+
+- If deaths fall as vaccination coverage increases, the chart is consistent with vaccines having contributed to reduced mortality.
+- If deaths rise or show peaks despite increasing coverage, other factors, such as new variants, seasonal effects, and infection waves, may also be influencing deaths.
+- Important: This chart shows a relationship over time, not proof that vaccines caused the decline. Changes in age-specific vaccination, prior immunity, public-health restrictions, and reporting practices also matter.
+
+Conclusion: The chart lets you investigate whether reported daily deaths fell during the vaccine rollout. The actual conclusion should be based on the plotted data; the code does not assume in advance that deaths declined.

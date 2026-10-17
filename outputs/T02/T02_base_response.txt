@@ -1,0 +1,15 @@
+A good way to compare how badly COVID-19 affected South American countries is to create a horizontal bar chart of cumulative COVID-19 deaths per million people. This measure accounts for differences in population size, making countries easier to compare fairly.
+
+The following Python code uses `pandas` to load and prepare the CSV file and `matplotlib` to create the chart.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# 1. Load the COVID-19 datasetdf = pd.read_csv("owid-covid-data.csv")# 2. Convert the date column to datetime formatdf["date"] = pd.to_datetime(df["date"], errors="coerce")# 3. Select countries in South Americasouth_america = df[df["continent"] == "South America"].copy()# 4. Sort by date and remove rows with missing death-rate datasouth_america = south_america.sort_values("date")south_america = south_america.dropna(    subset=["total_deaths_per_million"])# 5. Get the latest available cumulative deaths per millionlatest = south_america.groupby("location").tail(1)# 6. Sort countries from lowest to highest death ratelatest = latest.sort_values("total_deaths_per_million")# 7. Create the horizontal bar chartplt.figure(figsize=(12, 8))plt.barh(    latest["location"],    latest["total_deaths_per_million"])plt.title(    "COVID-19 Impact Across South American Countries",    fontsize=16
+```
+
+### How to interpret the chart
+
+- Longer bars indicate more reported cumulative COVID-19 deaths per million people.
+- Shorter bars indicate fewer reported cumulative deaths per million people.
+- Countries are ranked from lowest to highest, making differences easy to see.
+
+This chart uses `total_deaths_per_million` rather than raw death counts, so more populous countries are not automatically ranked as more severely affected. It measures reported cumulative mortality, not the full impact of COVID-19, and differences in testing and death reporting can affect comparisons.

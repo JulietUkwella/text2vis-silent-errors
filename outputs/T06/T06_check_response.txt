@@ -1,0 +1,21 @@
+Problem: The chart does not necessarily show the share of all people in Africa who were fully vaccinated. The main issue is how missing data are handled.
+
+The line
+
+```
+africa = africa.dropna(    subset=["people_fully_vaccinated", "population"])
+```
+
+removes any country-date record without a reported fully vaccinated count or population. When the code subsequently sums both columns by date, the denominator includes only the populations of countries with available vaccination data on that date—not the entire African population.
+
+As a result, the chart can overstate or understate the continent-wide vaccination share, and changes in which countries report data can make the trend misleading.
+
+A better approach is to use a consistent, complete population denominator for Africa and aggregate the country-level vaccination counts for each date, while explicitly addressing missing vaccination data. Alternatively, use OWID’s precomputed Africa-level vaccination-share indicator if it is available in the dataset.
+
+One additional detail: OWID defines “fully vaccinated” as having completed the initial vaccination protocol, not necessarily having received subsequent booster doses.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://ourworldindata.org\&sz=32)
+
+Our World in Data
+
++1

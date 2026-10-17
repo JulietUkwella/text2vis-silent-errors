@@ -1,0 +1,43 @@
+## 1. Analytical choices to make before plotting
+
+The question sounds simple, but the answer depends on how we define and measure COVID-19 deaths.
+
+| Analytical choice            | Option chosen                                                        | Why                                                                                                                                                                                       |
+| ---------------------------- | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Measure of deaths            | Change in `total_deaths`                                             | This column records cumulative reported deaths. Taking the difference between year-end totals estimates the deaths added during each year and avoids relying on the sum of daily reports. |
+| Totals or rates              | Absolute number of deaths                                            | The question asks which year had more deaths. Rates such as `total_deaths_per_million` are more appropriate for comparing the risk between populations of different sizes.                |
+| Time period                  | Calendar years 2021 and 2022                                         | Compare December 31, 2020, with December 31, 2021, and December 31, 2022. This captures the change in cumulative deaths during each calendar year.                                        |
+| Rows to include              | Only rows with `iso_code == "USA"` and `location == "United States"` | The dataset includes countries, continents, and global aggregates. Filtering to the United States prevents accidentally including other populations or aggregate rows.                    |
+| Missing data                 | Require usable cumulative death totals on all three year-end dates   | The calculation needs three snapshots. Rather than silently substitute different dates, the code will stop and flag missing endpoint data.                                                |
+| Daily versus smoothed counts | Use `total_deaths`, not `new_deaths` or `new_deaths_smoothed`        | Daily reports can contain missing values, retrospective corrections, and reporting-day fluctuations. The cumulative measure provides a straightforward year-to-year comparison.           |
+
+### What could make the chart misleading?
+
+There are several important limitations to keep in mind:
+
+- Reported deaths are not necessarily deaths that occurred on that exact date. Reporting delays, backlogs, and retrospective revisions can affect the cumulative series.
+- Cumulative figures can be revised. The difference between two year-end values measures the net increase in reported cumulative deaths, which may not perfectly match the number of deaths that actually occurred during the year.
+- Absolute counts do not adjust for population size. This is appropriate for answering which year had more deaths in the United States, but not for comparing mortality rates between countries.
+- The chart does not explain why the numbers changed. It compares two annual totals; it does not establish the causes of differences.
+
+Calculation:
+
+\\[ \begin{aligned} \text{Deaths in 2021} &= T\_{2021}-T\_{2020}\\\ \text{Deaths in 2022} &= T\_{2022}-T\_{2021} \end{aligned} \\]
+
+Here, \\(T_y\\) is the cumulative `total_deaths` value on December 31 of year \\(y\\).
+
+## 2. Python code to load the CSV and create the chart
+
+The following code uses pandas to load and filter the dataset and matplotlib to create a bar chart. It also prints the estimated annual totals and identifies which year had more reported deaths.
+
+```
+import pandas as pdimport matplotlib.pyplot as pltfrom matplotlib.ticker import StrMethodFormatter# --------------------------------------------------# 1. Load the dataset# --------------------------------------------------df = pd.read_csv(    "owid-covid-data.csv",    parse_dates=["date"])# --------------------------------------------------# 2. Keep only United States country-level records# --------------------------------------------------us = df.loc[    (df["iso_code"] == "USA") &    (df["location"] == "United States"),    ["date", "total_deaths"]].copy()if us.empty:    raise ValueError(        "No United States records found. Check the CSV file and filters."    )us["date"] = pd.to_datetime(us["date"], errors="coerce")us["total_deaths"] = pd.to_numeric(    us["total_deaths"], errors="coerce")us = us.dropna(subset=["date"])# The comparison requires one record per date.if us["date"].duplicated().any():    raise ValueError(        "Duplicate United States dates found. "        "Check the data before calculating annual totals."    )# --------------------------------------------------# 3. Get cumulative deaths at each year-end# --------------------------------------------------year_end_dates = [    pd.Timestamp("2020-12-31"),    pd.Timestamp("2021-12-31"),    pd.Timestamp("2022-12-31"),]cumulative_deaths = {}
+```
+
+## 3. How to interpret the chart
+
+Each bar represents the increase in cumulative reported COVID-19 deaths during one calendar year. The taller bar indicates the year with more reported deaths added.
+
+The code prints the calculated totals and the comparison in the console, so you can use the output to answer the question directly.
+
+One final caution: this method measures the increase in the dataset's reported cumulative death count between year-end snapshots. It is a transparent way to compare years, but it should not be described as a perfectly exact count of the dates on which deaths occurred.

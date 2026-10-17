@@ -1,0 +1,38 @@
+## 1. Analytical choices and why
+
+“Show the 10 countries with the most COVID cases” sounds straightforward, but the result depends on how cases, dates, and locations are defined.
+
+| Analytical choice        | Option selected                                                          | Reason                                                                                                                                                                                            |
+| ------------------------ | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Measure of cases         | `total_cases`                                                            | This is the cumulative number of reported cases, which directly answers how many cases each location has recorded.                                                                                |
+| Totals or rates          | Absolute case counts, not `total_cases_per_million`                      | The question asks for the most cases, rather than the highest rate relative to population.                                                                                                        |
+| Time period              | Latest available non-missing `total_cases` observation for each location | This compares cumulative totals using the most recent usable data in the file for each location.                                                                                                  |
+| Rows to include          | Locations with a non-missing `continent`                                 | This excludes aggregate rows such as the world, continents, and income groups. Some territories and dependencies may still be included, so the chart is technically about country-like locations. |
+| Handling dates           | Sort by date and keep the latest valid observation for each location     | The dataset has one row per location per date. Selecting the latest observation avoids counting the same cumulative total repeatedly.                                                             |
+| Missing values           | Exclude rows with missing dates or `total_cases`                         | Missing values cannot establish a valid ranking. A location with a missing latest value can still use its most recent earlier non-missing observation.                                            |
+| Ranking and presentation | Select the 10 highest totals and use a horizontal bar chart              | Horizontal bars make country names easy to read, and sorting the bars helps compare rankings.                                                                                                     |
+| Reporting dates          | Display the observation date beside each bar                             | Countries can have different latest reporting dates, so displaying dates makes this limitation visible.                                                                                           |
+
+### What could make the chart misleading?
+
+- Population size: Absolute totals tend to favor populous countries. A country with more cases overall does not necessarily have a higher per-person case burden.
+- Underreporting: `total_cases` counts reported cases, not all actual infections. Testing availability, reporting practices, and case definitions have varied across countries and over time.
+- Different observation dates: The most recent available observation may not be from the same date in every country. The ranking is therefore not necessarily a perfectly synchronized comparison.
+- Data revisions and gaps: Reported cumulative totals can be revised, and missing observations can mean that some countries' totals are less current than others.
+- Country definitions: Filtering on `continent` excludes most aggregate rows, but the results may include territories and dependencies as well as sovereign countries.
+
+Chosen approach: Rank locations by their latest non-missing cumulative reported case total, using the data available in the CSV. This is a straightforward interpretation of “the 10 countries with the most COVID cases,” with the reporting dates shown to help interpret the results.
+
+## 2. Python code
+
+The following code uses `pandas` to prepare the data and `matplotlib` to create the chart. It assumes `owid-covid-data.csv` is in your current working directory.
+
+```
+import pandas as pdimport matplotlib.pyplot as pltfrom matplotlib.ticker import FuncFormatter# 1. Load the datasetdf = pd.read_csv("owid-covid-data.csv", low_memory=False)# Ensure dates and case counts have appropriate data typesdf["date"] = pd.to_datetime(df["date"], errors="coerce")df["total_cases"] = pd.to_numeric(df["total_cases"], errors="coerce")# 2. Keep country-like locations and valid observations.# A non-missing continent excludes most aggregate rows, such as# the world, continents, and income groups. Territories may remain.eligible = df.loc[    df["continent"].notna()    & df["date"].notna()    & df["total_cases"].notna(),    ["location", "continent", "date", "total_cases"]].copy()if eligible.empty:    raise ValueError(        "No country-like locations with valid total_cases observations found."    )# 3. Get the latest non-missing cumulative case total for each location.latest = (    eligible    .sort_values(["location", "date"])    .drop_duplicates(subset="location", keep="last"))# 4. Select and rank the 10 locations with the highest case totals.top10 = (    latest    .nlargest(10, "total_cases")    .sort_values("total_cases", ascending=True)    .copy())# Convert case totals to millions for easier chart reading.top10["cases_millions"] = top10["total_cases"] / 1_000_000# 5. Create the horizontal bar chart.fig, ax = plt.subplots(figsize=(12, 7))bars = ax.barh(    top10["location"],    top10["cases_millions"])# Add the total and the observation date beside each bar.max_cases = top10["cases_millions"].max()for bar, (_, row) in zip(bars, top10.iterrows()):    cases = row["cases_millions"]    report_date = row["date"].strftime("%Y-%m-%d")    ax.text(        bar.get_width() + max_cases * 0.015,        bar.get_y() + bar.get_height() / 2,        f"{cases:,.1f}M  ({report_date})",        va="center",        fontsize=9    )# 6. Format the chart.ax.set_title(    "Top 10 Countries/Country-like Locations by COVID-19 Cases",    fontsize=14,    pad=14)ax.set_xlabel("Cumulative reported COVID-19 cases (millions)")ax.set_ylabel("Location")# Keep enough room for the case totals and dates displayed beside the bars.ax.set_xlim(0, max_cases * 1.35 if max_cases > 0 else 1)ax.xaxis.set_major_formatter(    FuncFormatter(lambda x, pos: f"{x:,.0f}"))ax.grid(axis="x", linestyle="--", alpha=0.4)ax.set_axisbelow(True)# Remove unnecessary borders for a cleaner chart.ax.spines["top"].set_visible(False)ax.spines["right"].set_visible(False)plt.tight_layout()plt.show()
+```
+
+### How to interpret the chart
+
+Each bar represents one location's latest available cumulative count of reported COVID-19 cases. The longest bar corresponds to the highest count among the locations in the dataset, and the date beside each bar indicates when that total was recorded.
+
+The chart uses absolute cumulative cases, not cases per million people. For a different question—such as which countries experienced the greatest case burden relative to their population—you would rank by `total_cases_per_million` instead.

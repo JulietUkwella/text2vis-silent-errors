@@ -1,0 +1,15 @@
+Here’s Python code using pandas and matplotlib to load `owid-covid-data.csv`, calculate each country's highest recorded cumulative COVID-19 case count, and create a bar chart showing the 10 countries with the most total cases.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# Load the COVID-19 datasetdf = pd.read_csv("owid-covid-data.csv")# Keep country rows, excluding continents and other aggregate locationsdf = df[~df["iso_code"].str.startswith("OWID_", na=False)]# Find the latest recorded total_cases value for each countrydf["date"] = pd.to_datetime(df["date"])latest_cases = (    df.sort_values("date")      .groupby("location", as_index=False)      .last()[["location", "total_cases"]])# Remove rows with missing case countslatest_cases = latest_cases.dropna(subset=["total_cases"])# Select the 10 countries with the most total casestop_10 = latest_cases.nlargest(10, "total_cases")top_10 = top_10.sort_values("total_cases", ascending=True)# Create a horizontal bar chartplt.figure(figsize=(12, 7))plt.barh(top_10["location"], top_10["total_cases"])plt.xlabel("Total confirmed COVID-19 cases")plt.ylabel("Country")plt.title("Top 10 Countries by Total COVID-19 Cases")plt.gca().xaxis.set_major_formatter(    plt.FuncFormatter(lambda x, _: f"{x:,.0f}"))
+```
+
+### How it works
+
+1. Loads the CSV into a pandas DataFrame.
+2. Excludes aggregate locations such as continents and income groups using `iso_code`.
+3. Finds the latest recorded cumulative case count for each country.
+4. Selects the top 10 countries by total cases.
+5. Plots a horizontal bar chart, making country names easy to read.
+
+Note: This chart uses the latest available cumulative case count for each country in your file, not the sum of `new_cases`, which would double-count cases if you summed a cumulative measure. Because reporting dates and data completeness may differ, the results depend on the contents of your CSV.

@@ -1,0 +1,9 @@
+The code below uses pandas to load `owid-covid-data.csv`, aggregate fully vaccinated people across African countries by date, and use matplotlib to plot the share of the population fully vaccinated over time. It excludes country-date records with missing vaccination or population data to avoid treating missing values as zero.
+
+```
+import pandas as pdimport matplotlib.pyplot as pltfrom matplotlib.ticker import PercentFormatter# Load the COVID-19 datasetdf = pd.read_csv("owid-covid-data.csv", parse_dates=["date"])# Filter for countries in Africaafrica = df[df["continent"] == "Africa"].copy()# Keep records with available vaccination and population dataafrica = africa.dropna(    subset=["people_fully_vaccinated", "population"])# Aggregate fully vaccinated people and population by datedaily = (    africa.groupby("date")    .agg(        fully_vaccinated=("people_fully_vaccinated", "sum"),        population=("population", "sum")    )    .sort_index())# Calculate the percentage fully vaccinateddaily["fully_vaccinated_share"] = (    daily["fully_vaccinated"] / daily["population"] * 100)# Plot the resultsfig, ax = plt.subplots(figsize=(12, 6))ax.plot(    daily.index,
+```
+
+How to interpret the chart: The y-axis shows the percentage of the population represented by countries with available vaccination data that had completed their COVID-19 vaccination protocol on each date.
+
+Important limitation: Because countries can have missing vaccination records, the population included in the calculation may vary over time. Therefore, the result is an estimate for reporting countries, not necessarily the exact share of the entire African population.

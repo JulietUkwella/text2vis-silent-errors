@@ -1,0 +1,43 @@
+## 1. Analytical choices before writing the code
+
+The question is whether COVID-19 deaths in the United Kingdom fell after vaccines were rolled out. To answer it fairly, the chart should show deaths over time, identify when vaccination began, and avoid implying that a change in deaths was necessarily caused by vaccines.
+
+### Choices and rationale
+
+| Analytical choice          | Option selected                                         | Why                                                                                                                                                                   |
+| -------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Measure of deaths          | `new_deaths_smoothed`                                   | Measures daily deaths averaged over seven days. This makes the overall trend easier to see than highly variable daily counts.                                         |
+| Deaths or death rates      | Absolute daily deaths                                   | The question concerns deaths in the UK, so actual numbers are intuitive. Since we are examining one country over time, comparing deaths per million is not essential. |
+| New deaths or total deaths | New deaths, not `total_deaths`                          | Cumulative deaths generally increase or stay flat, even when daily deaths decline. Daily deaths answer the question more directly.                                    |
+| Time period                | All available UK records                                | Showing the full timeline provides context about deaths before vaccination, the initial rollout, and subsequent waves.                                                |
+| Vaccination reference date | 8 December 2020                                         | Mark the date the UK's first COVID-19 vaccination programme began, so the reader can distinguish the pre-rollout and post-rollout periods.                            |
+| Rows to include            | Rows where `location == "United Kingdom"`               | This avoids mixing UK figures with other countries or regional rows.                                                                                                  |
+| Missing observations       | Exclude rows with missing dates or death measurements   | Missing values should not be interpreted as zero deaths.                                                                                                              |
+| Smoothing                  | Use the dataset's seven-day smoothed measure            | This reduces noise from weekday reporting patterns and makes trends easier to interpret.                                                                              |
+| Chart format               | A time-series line chart with a vertical rollout marker | This makes it easy to compare the trend before and after vaccination began.                                                                                           |
+
+The rollout date is a reference point, not a claim that large numbers of people were protected immediately. The impact of vaccination would depend on how quickly people received doses and developed protection.
+
+### What could make the chart misleading?
+
+- Correlation is not causation. A drop after rollout would not prove that vaccines caused the drop. Lockdowns, seasonal patterns, new variants, changes in behaviour, and improvements in treatment could also affect deaths.
+- The rollout took time. The first vaccine was administered on 8 December 2020, but vaccination coverage increased gradually. A vertical line cannot represent when the whole population gained protection. [UK government source](https://www.gov.uk/government/news/uk-marks-one-year-since-deploying-worlds-first-covid-19-vaccine?utm_source=chatgpt.com).
+- Reported deaths are not necessarily all COVID-19 deaths. Definitions, reporting practices, and death attribution can vary. The Our World in Data documentation notes these limitations. [OWID data documentation](https://github.com/owid/covid-19-data/blob/master/public/data/README.md?utm_source=chatgpt.com).
+- Later waves matter. Deaths might initially fall after the rollout and rise again later. Looking at only a short post-rollout window could give an incomplete picture.
+- Missing data and revisions matter. Excluding missing observations is appropriate, but the chart will reflect the data available in your saved CSV, which may not be the latest version.
+
+## 2. Python code
+
+The following code loads your CSV, filters for the United Kingdom, and plots seven-day smoothed daily COVID-19 deaths. The vertical dashed line marks the start of the UK vaccination rollout.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# 1. Load the datasetfile_path = "owid-covid-data.csv"df = pd.read_csv(file_path)# 2. Select only the United Kingdom's recordsuk = df.loc[    df["location"] == "United Kingdom",    ["date", "new_deaths_smoothed"]].copy()# 3. Convert columns to suitable data typesuk["date"] = pd.to_datetime(uk["date"], errors="coerce")uk["new_deaths_smoothed"] = pd.to_numeric(    uk["new_deaths_smoothed"], errors="coerce")# 4. Remove missing observations and sort chronologicallyuk = (    uk.dropna(subset=["date", "new_deaths_smoothed"])      .sort_values("date"))if uk.empty:    raise ValueError(        "No valid United Kingdom death data was found in the CSV."    )# 5. Set the date of the first UK vaccinationrollout_date = pd.Timestamp("2020-12-08")# 6. Create the chartfig, ax = plt.subplots(figsize=(12, 6))ax.plot(    uk["date"],    uk["new_deaths_smoothed"],    linewidth=1.8,    label="Daily deaths (7-day smoothed)")# Mark the start of the vaccination rolloutax.axvline(    rollout_date,    color="red",    linestyle="--",    linewidth=1.5,    label="UK vaccination rollout begins")# Add a label near the top of the chartax.text(    rollout_date + pd.Timedelta(days=20),    0.96,    "First vaccine: 8 Dec 2020",    transform=ax.get_xaxis_transform(),    color="red",    verticalalignment="top")# 7. Add titles and labelsax.set_title(    "Did COVID-19 Deaths Fall After Vaccination Began in the UK?")ax.set_xlabel("Date")ax.set_ylabel("Daily COVID-19 deaths (7-day average)")ax.grid(axis="y", alpha=0.3)ax.legend()fig.autofmt_xdate()plt.tight_layout()plt.show()
+```
+
+## 3. How to interpret the chart
+
+Look at the death trend on either side of the dashed line.
+
+If smoothed daily deaths decline during the months after 8 December 2020, that supports the descriptive conclusion that reported COVID-19 deaths fell after vaccination began. If deaths rise during later waves, that is also important evidence to include in the interpretation.
+
+The chart alone cannot establish how much of any decline was caused by vaccination. A stronger follow-up analysis would compare deaths with vaccination coverage over time, accounting for a delay between vaccination and its expected effect on mortality.

@@ -1,0 +1,7 @@
+Problem: The code sums `new_deaths` by the year in which deaths were reported in the dataset, which is not necessarily the year in which the deaths actually occurred. Deaths reported late or added retrospectively can be attributed to a different year from when they happened. Therefore, the chart compares annual reported deaths, not necessarily the actual number of COVID-19 deaths that occurred in each calendar year.
+
+Our World in Data explicitly notes that death figures are assigned to reporting dates, rather than necessarily to the dates deaths occurred, and that historical figures may be revised. 【turn628974search4】
+
+Additional caveat: The dataset sets rare negative daily changes caused by corrections to missing values. Because pandas’ `sum()` skips missing values, the totals may not fully account for those corrections. 【turn628974search2】
+
+To answer the question about deaths that actually occurred in each year, use death records assigned to date of death, if available, rather than relying solely on reported daily counts.

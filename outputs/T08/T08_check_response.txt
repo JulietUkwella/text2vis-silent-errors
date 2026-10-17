@@ -1,0 +1,17 @@
+Correct — the code correctly filters the dataset for Italy, sorts observations chronologically, and plots `total_deaths` against date. In the Our World in Data dataset, `total_deaths` represents the cumulative number of deaths attributed to COVID-19.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://github.com\&sz=32)
+
+GitHub
+
+
+
+One important distinction: the chart shows how the cumulative death toll grew over time, not how the number of deaths occurring each day rose and fell. If the goal is to examine daily death trends and pandemic waves, use `new_deaths` or the seven-day smoothed measure, `new_deaths_smoothed`, instead.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://github.com\&sz=32)
+
+GitHub
+
+
+
+There is no apparent problem with the filtering, sorting, or plotting logic; the appropriate death metric depends on the intended interpretation of the question.

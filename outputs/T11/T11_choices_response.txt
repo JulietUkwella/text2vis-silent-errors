@@ -1,0 +1,37 @@
+## 1. Analytical choices and assumptions
+
+The question sounds straightforward, but the dataset contains several vaccination measures and multiple rows for each country. To make the chart interpretable, I would make the following choices explicit.
+
+| Analytical choice          | What I would choose                                                                               | Why                                                                                                                                                                                          |
+| -------------------------- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Definition of “vaccinated” | Fully vaccinated: `people_fully_vaccinated_per_hundred`                                           | Measures the percentage of the population that completed the initial vaccination protocol, rather than counting everyone who received only one dose. It does not measure booster uptake.     |
+| Counts or rates            | Use the rate per 100 people directly                                                              | Raw vaccination totals would make larger countries look more vaccinated simply because they have more people. This rate is equivalent to a percentage of the population.                     |
+| Time period                | Use each country's latest non-missing observation                                                 | This provides the latest reported value available in the supplied file for each country, which may not be the same as the latest calendar date.                                              |
+| Rows to include            | Only Canada, France, Germany, Italy, Japan, the United Kingdom, and the United States             | These are the seven G7 countries. Filtering the `location` column to these exact names excludes regional, continental, and global aggregates.                                                |
+| Missing data               | Exclude rows with missing dates or vaccination rates; flag any country with no usable observation | Missing values should not be treated as zero, since that would falsely imply that nobody was vaccinated. The code will stop with a clear error if it cannot find a value for any G7 country. |
+| Chart type                 | Horizontal bar chart, sorted by vaccination percentage                                            | It makes country comparisons easy to read and leaves room for percentage labels.                                                                                                             |
+| Reporting dates            | Display each country's observation date next to its name                                          | Countries may report vaccination figures on different dates, so the dates are essential context for comparing them.                                                                          |
+
+### What could make the chart misleading?
+
+- One dose versus a completed vaccination course: The share with at least one dose (`people_vaccinated_per_hundred`) will generally differ from the share fully vaccinated. This chart uses the latter. Neither measure includes booster uptake as part of its definition.
+- Different reporting dates: The latest available value for one country might be from a different date than another country's value. The chart will show those dates, but it will not be a perfectly synchronized comparison.
+- Missing or outdated observations: The newest row in the CSV may not contain a vaccination value. The code therefore finds the latest non-missing value, not simply the last row. The results describe the supplied file, not necessarily the vaccination situation today.
+- Differences in reporting and population estimates: Countries may collect and report vaccination data differently. Values are not always perfectly comparable, and a reported rate can occasionally exceed 100 because of denominator or reporting issues. The chart should not silently cap such values.
+- What “fully vaccinated” means: The measure refers to completion of the initial vaccination protocol, not necessarily protection against current variants or being up to date with current vaccine recommendations.
+
+The approach below prioritizes the latest usable data in the CSV while making differences in reporting dates visible.
+
+## 2. Python code
+
+Save this script in the same folder as `owid-covid-data.csv`. It loads only the columns needed, selects the latest non-missing vaccination rate for each G7 country, and creates the chart.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# --------------------------------------------------# 1. Configure the file, countries, and measure# --------------------------------------------------file_path = "owid-covid-data.csv"g7_countries = [    "Canada",    "France",    "Germany",    "Italy",    "Japan",    "United Kingdom",    "United States"]metric = "people_fully_vaccinated_per_hundred"# Load only the columns needed for this analysisdf = pd.read_csv(    file_path,    usecols=["location", "date", metric],    parse_dates=["date"])# --------------------------------------------------# 2. Keep only the seven G7 countries# --------------------------------------------------g7 = df.loc[df["location"].isin(g7_countries)].copy()# Make sure the vaccination measure is numericg7[metric] = pd.to_numeric(g7[metric], errors="coerce")# Missing dates or rates cannot be used for the chartg7 = g7.dropna(subset=["date", metric])# --------------------------------------------------# 3. Get each country's latest usable observation# --------------------------------------------------latest = (    g7.sort_values(["location", "date"])
+```
+
+### How to interpret the chart
+
+Each bar represents the percentage of a country's total population recorded as fully vaccinated in its latest usable observation. The percentage appears at the end of the bar, and the date beside each country identifies when that figure was reported.
+
+For a different definition of vaccination, use `people_vaccinated_per_hundred` instead of `people_fully_vaccinated_per_hundred`. That alternative measures the population that received at least one dose; update the chart title and axis label to match.

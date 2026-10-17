@@ -1,0 +1,46 @@
+## 1. Analytical choices and assumptions
+
+The key challenge is that the dataset contains one row per location per date, and `total_deaths` is a cumulative count. We must avoid counting the same deaths repeatedly across dates.
+
+| Analytical choice   | Option selected                                                                                       | Reason                                                                                                                                                                                         |
+| ------------------- | ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Measure of deaths   | `total_deaths`                                                                                        | This is the cumulative number of reported COVID-19 deaths. `new_deaths` measures deaths reported during individual periods, while excess mortality measures deaths above an expected baseline. |
+| Totals or rates     | Absolute totals, not deaths per million                                                               | The question asks how many people died. `total_deaths_per_million` would be more suitable for comparing mortality relative to population size.                                                 |
+| Time period         | Latest available non-missing cumulative death count for each location                                 | This captures the most complete reported total available for each location in the file. No specific start or end date was given.                                                               |
+| Rows to include     | Rows with a non-missing continent, date, and `total_deaths` value                                     | These rows can be assigned to a continent and have a usable death count.                                                                                                                       |
+| How to aggregate    | Keep one latest record per location, then sum its deaths within each continent                        | Summing every row would count cumulative deaths repeatedly across dates.                                                                                                                       |
+| Missing values      | Exclude missing death counts rather than replace them with zero                                       | A missing value means the number is unknown or unreported, not necessarily zero.                                                                                                               |
+| Geographic coverage | Include countries and territories assigned to a continent; exclude aggregate rows without a continent | This helps avoid double-counting totals from entries such as the world or other regional aggregates.                                                                                           |
+
+### What could make the chart misleading?
+
+Before interpreting the results, keep these limitations in mind:
+
+- Different populations: Continents with more people will generally have more deaths. Absolute totals do not show which continent experienced the highest mortality rate.
+- Different reporting dates: Taking the latest value for each location means some locations may contribute figures from different dates. The code below prints the date ranges used so you can inspect this issue.
+- Differences in reporting: Countries may use different definitions of COVID-19 deaths, and their testing, death registration, and reporting practices vary.
+- Incomplete data: Locations with missing death counts will be omitted. Reported totals may therefore understate the true number of deaths.
+- Reported deaths versus actual deaths: `total_deaths` is a count of reported deaths attributed to COVID-19, not necessarily the true number of deaths caused directly or indirectly by the pandemic.
+
+The chart should therefore be interpreted as the sum of the latest available reported cumulative COVID-19 deaths for locations assigned to each continent, rather than a perfectly synchronized or complete count of all pandemic-related deaths.
+
+## 2. Python code
+
+The following code uses `pandas` to load and aggregate the data and `matplotlib` to create the bar chart.
+
+```
+import pandas as pdimport matplotlib.pyplot as pltfrom matplotlib.ticker import StrMethodFormatter# --------------------------------------------------# 1. Load the dataset# --------------------------------------------------df = pd.read_csv("owid-covid-data.csv")# Check that the necessary columns existrequired_columns = {"location", "continent", "date", "total_deaths"}missing_columns = required_columns - set(df.columns)if missing_columns:    raise ValueError(        f"The dataset is missing these columns: {missing_columns}"    )# Convert columns to suitable data typesdf["date"] = pd.to_datetime(df["date"], errors="coerce")df["total_deaths"] = pd.to_numeric(    df["total_deaths"], errors="coerce")df["continent"] = df["continent"].astype("string").str.strip()# --------------------------------------------------# 2. Select usable country/territory records# --------------------------------------------------# Exclude rows with missing continents, dates, or# cumulative death counts. Aggregate rows without a# continent assignment will also be excluded.usable_rows = df.loc[    df["continent"].notna()    & df["continent"].ne("")    & df["date"].notna()    & df["total_deaths"].notna(),    ["location", "continent", "date", "total_deaths"]].copy()if usable_rows.empty:    raise ValueError("No usable rows were found in the dataset.")
+```
+
+## 3. How the result is calculated
+
+The main calculation has two steps:
+
+1. For each location, select the record with the latest non-missing `total_deaths` value.
+2. Sum those location-level values by `continent` and plot the totals.
+
+For example, suppose a location reports cumulative deaths of 100, 150, and 200 on three dates. The calculation uses 200, not \\(100 + 150 + 200 = 450\\), because the earlier figures are already included in the latest cumulative total.
+
+The resulting bar chart shows the absolute reported death totals, ordered from largest to smallest. The printed date ranges also help identify whether the latest observations used for different locations were recorded at substantially different times.
+
+Important: Since I do not have your actual CSV file, the code is ready to run locally, but I have not calculated the real continent totals or verified how complete your particular file is.

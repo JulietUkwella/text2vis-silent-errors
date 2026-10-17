@@ -1,0 +1,5 @@
+Problem: The chart ranks countries by absolute cumulative confirmed COVID-19 deaths, not by their overall mortality impact relative to population. If “hit hardest” means the highest death burden per capita, comparing raw death counts is misleading because countries with larger populations will generally have more deaths.
+
+The code also uses each country's latest available reported cumulative death count, which may come from different dates, making the comparison potentially inconsistent. A better approach would be to compare cumulative deaths per million people and use a common cutoff date for all countries.
+
+If the intended question specifically means the highest total number of reported deaths, the code largely answers it correctly, assuming the dataset is valid and the country filtering is appropriate.

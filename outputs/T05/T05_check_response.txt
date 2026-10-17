@@ -1,0 +1,17 @@
+Problem: The code does not calculate the total COVID-19 deaths for each continent. Instead, it selects just one country per continent.
+
+The problem is this line:
+
+```
+.groupby("continent").tail(1)
+```
+
+After sorting by date, `tail(1)` selects only the last row in each continent group. Since the dataset contains separate rows for individual countries, the resulting chart shows the cumulative deaths for one country's most recently dated record in each continent, not the combined deaths across all countries in that continent.
+
+How to fix it: First, select the latest available cumulative-death record for each country, then sum those values by continent:
+
+```
+latest_by_country = (    df.sort_values("date")      .groupby("location")      .tail(1))continent_deaths = (    latest_by_country.groupby("continent")["total_deaths"]    .sum()    .sort_values(ascending=False))
+```
+
+The bar chart should then use `continent_deaths`. This approach assumes the dataset's country-level cumulative totals are suitable for summing, and the latest records may refer to different dates.

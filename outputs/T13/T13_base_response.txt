@@ -1,0 +1,15 @@
+The following Python code uses pandas to load `owid-covid-data.csv` and matplotlib to create a horizontal bar chart comparing the percentage of people fully vaccinated against COVID-19 across European countries.
+
+It uses `people_fully_vaccinated_per_hundred` and selects each country's latest available non-missing vaccination rate.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# 1. Load the COVID-19 datasetdf = pd.read_csv(    "owid-covid-data.csv",    parse_dates=["date"])# 2. Filter data to European countrieseurope = df[df["continent"] == "Europe"].copy()# 3. Keep records with reported full vaccination rateseurope = europe.dropna(    subset=["people_fully_vaccinated_per_hundred"])# 4. Get the latest available vaccination rate for each countrylatest = (    europe.sort_values("date")    .groupby("location", as_index=False)    .tail(1)    .sort_values("people_fully_vaccinated_per_hundred"))# 5. Create a horizontal bar chartplt.figure(figsize=(12, max(8, len(latest) * 0.3)))plt.barh(    latest["location"],    latest["people_fully_vaccinated_per_hundred"])plt.xlabel("People fully vaccinated (% of population)")plt.ylabel("Country")plt.title("COVID-19 Full Vaccination Rates Across European Countries")plt.grid(axis="x", linestyle="--", alpha=0.5)plt.tight_layout()plt.show()
+```
+
+### How to interpret the chart
+
+- X-axis: Percentage of the population fully vaccinated against COVID-19.
+- Y-axis: European countries, ordered from the lowest to the highest reported vaccination rate.
+- Longer bars: Countries with a higher reported percentage of fully vaccinated people.
+
+Note: The latest available reporting date may differ between countries. The chart compares each country's most recent available value, not necessarily values measured on the same date. For vaccination coverage based on at least one dose instead, replace `people_fully_vaccinated_per_hundred` with `people_vaccinated_per_hundred` in the code.

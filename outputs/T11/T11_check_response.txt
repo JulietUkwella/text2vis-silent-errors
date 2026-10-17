@@ -1,0 +1,7 @@
+Problem: The chart compares vaccination percentages from potentially different dates, so it may not provide a fair comparison across the G7 countries.
+
+The code selects the latest non-missing value independently for each country and each vaccination metric. As a result, Canada’s “At least one dose” percentage, for example, might be reported on a different date from its “Fully vaccinated” percentage, and the dates may also differ between countries. Because vaccination rates change over time, these values are not necessarily comparable at a common point in time.
+
+The two metrics themselves are appropriate for showing different levels of vaccination: at least one dose and completion of the initial vaccination protocol, each expressed per 100 people in the total population. They are distinct measures, as defined by Our World in Data. 【turn938468search0】
+
+How to fix it: Choose a common comparison date and use each country’s latest non-missing observation on or before that date, while reporting the observation dates so that stale data are visible. If the question is specifically about vaccination status today, the chart should also make clear that these historical initial-protocol measures do not represent current booster coverage.

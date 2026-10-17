@@ -1,0 +1,45 @@
+## 1. Analytical choices and justifications
+
+The question “Plot how COVID deaths changed over time in Italy” leaves several analytical choices open. I would make the following decisions before producing the chart.
+
+| Analytical choice                 | Option selected                                       | Reason                                                                                                                                                                                              |
+| --------------------------------- | ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Measure of deaths                 | `new_deaths`                                          | Shows the number of newly reported deaths on each date, making changes in daily deaths visible.                                                                                                     |
+| Daily deaths or cumulative deaths | Daily deaths                                          | The question asks how deaths changed over time. Daily deaths reveal increases and decreases, whereas cumulative deaths almost always rise and show the running total instead.                       |
+| Counts or rates                   | Absolute counts                                       | The focus is Italy, a single country. Counts are intuitive for understanding the scale of deaths. A population-adjusted rate would be more appropriate when comparing countries of different sizes. |
+| Time period                       | All available dates for Italy                         | No specific period was requested, so I would use the full available historical series rather than select dates arbitrarily.                                                                         |
+| Rows to include                   | Rows where `location == "Italy"`                      | This isolates the country and excludes aggregate rows such as continents and the world.                                                                                                             |
+| Date handling                     | Convert `date` to a datetime and sort chronologically | Ensures that observations appear in the correct time order.                                                                                                                                         |
+| Missing values                    | Keep missing death counts as missing                  | A missing value does not necessarily mean zero deaths. Replacing missing values with zero could create artificial drops in the chart. Matplotlib will leave gaps where values are missing.          |
+| Negative daily values             | Retain them                                           | Negative values can arise from revisions or corrections to previously reported deaths. Removing them would conceal changes in the reported data.                                                    |
+| Smoothing                         | Plot raw daily deaths, without smoothing              | This preserves the original observations. Daily reports can be noisy, so a seven-day-smoothed series is a useful alternative for identifying the underlying trend.                                  |
+| Duplicate dates                   | Check for duplicate Italy dates                       | The dataset is intended to have one row per location per date. Unexpected duplicates could cause misleading or overlapping observations and should be investigated.                                 |
+
+### What could make the chart misleading?
+
+There are several important caveats:
+
+- Reporting fluctuations: Deaths may be reported in batches, delayed over weekends, or added after administrative backlogs. A sudden spike does not necessarily mean deaths occurred on that date.
+- Data revisions: Previously reported figures can be corrected, which may result in negative daily death counts. These values should not automatically be interpreted as negative deaths occurring in reality.
+- Missing observations: Missing values are not equivalent to zero, and gaps can make the time series appear incomplete.
+- Daily noise: Daily reported deaths can be erratic. A seven-day rolling average can help reveal the trend by reducing weekday reporting effects.
+- Reported deaths versus actual deaths: The chart represents deaths recorded in the dataset, not necessarily all deaths caused by COVID-19. Reporting practices and definitions can change over time.
+- Potentially different meanings of cumulative totals: `total_deaths` is a running total, while `new_deaths` is a daily measure. They answer different questions and should not be confused.
+
+For the main chart, I will use daily reported deaths (`new_deaths`) for Italy across all available dates, with the original daily values shown and a seven-day rolling average added to make the trend easier to interpret.
+
+## 2. Python code
+
+The following code uses pandas to load and filter the CSV and matplotlib to plot the daily counts and their seven-day rolling average. It also checks for duplicate dates and reports missing death counts.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# 1. Load the Our World in Data COVID-19 dataset.df = pd.read_csv(    "owid-covid-data.csv",    parse_dates=["date"])# 2. Keep only observations for Italy.italy = (    df.loc[df["location"].eq("Italy"), ["date", "new_deaths"]]    .sort_values("date")    .copy())if italy.empty:    raise ValueError("No rows were found for Italy in the dataset.")# 3. Check whether there is more than one row per date.duplicate_dates = italy.loc[    italy["date"].duplicated(keep=False), "date"].drop_duplicates()if not duplicate_dates.empty:    print("Warning: duplicate dates found for Italy:")    print(duplicate_dates.to_list())    print("Investigate these rows before interpreting the chart.")# 4. Report missing values and retain them as missing.missing_count = italy["new_deaths"].isna().sum()print(f"Number of Italy date rows: {len(italy)}")print(f"Missing daily death counts: {missing_count}")# 5. Compute a seven-calendar-day rolling average.
+```
+
+## 3. How to interpret the chart
+
+The blue line shows the daily number of deaths reported, including short-term fluctuations. The red line shows the seven-day rolling average, making broader increases and decreases easier to identify.
+
+The seven-day average is a visualization aid, not a correction to the original data. It can reduce reporting noise, but it cannot eliminate reporting delays, changes in definitions, or inaccuracies.
+
+Important: This code uses `new_deaths` as the measure of interest. If the intended question were instead “How many people had died from COVID-19 in Italy by each date?”, the appropriate measure would be `total_deaths`, which should be plotted as a cumulative line instead.

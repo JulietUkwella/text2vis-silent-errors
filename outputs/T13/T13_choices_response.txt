@@ -1,0 +1,41 @@
+## 1. Analytical choices and rationale
+
+“Compare COVID vaccination rates across European countries” leaves several decisions open. I would use a country-level bar chart of the percentage of each country's population that was fully vaccinated, measured at the latest date available for that country. This makes the comparison easy to interpret and avoids confusing countries with different population sizes.
+
+| Analytical choice         | Option selected                                                                               | Why                                                                                                                                                              |
+| ------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Vaccination measure       | `people_fully_vaccinated_per_hundred`                                                         | Measures the percentage of the population that completed the vaccine course, rather than the number of doses administered.                                       |
+| Rates or totals           | Population percentage, not absolute counts                                                    | Countries have very different population sizes, so totals would not provide a fair comparison of vaccination coverage.                                           |
+| Definition of vaccination | Fully vaccinated, not at least one dose or boosted                                            | Provides a consistent, meaningful measure of completion of the primary vaccination course. It does not measure protection against infection or current immunity. |
+| Time period               | Latest valid observation for each country                                                     | Provides the most recent available picture for each country in the saved dataset, rather than an arbitrary date.                                                 |
+| Countries to include      | Individual European countries with valid ISO country codes and a recorded continent of Europe | Excludes global aggregates and regional groupings that might otherwise appear alongside individual countries.                                                    |
+| Missing values            | Exclude countries with no valid vaccination-rate observation                                  | Missing data should not be interpreted as a vaccination rate of zero.                                                                                            |
+| Repeated dates            | One observation per country, using its latest non-missing rate                                | Prevents countries with many daily records from being counted more than once.                                                                                    |
+| Chart type                | Horizontal bar chart sorted from highest to lowest                                            | Makes country names readable and differences in coverage easy to compare.                                                                                        |
+
+### Potential sources of misleading comparisons
+
+1. Different reporting dates: The latest observation might be from a different date for each country. Some countries may have stopped reporting vaccination data earlier than others. The chart therefore compares each country's latest reported value, not necessarily its coverage on a common date.
+2. Missing or outdated data: A recorded value is not necessarily current, complete, or comparable in quality with values from other countries. The code should show the date of each country's observation so that stale data are visible.
+3. Changing vaccination definitions: “Fully vaccinated” generally referred to completion of the initial vaccination protocol. It does not necessarily mean a person received a booster or has strong protection today. The meaning of a complete course could also differ by vaccine and reporting practice.
+4. Country and territory classification: OWID contains aggregate rows as well as individual locations. Filtering on `continent == "Europe"` and excluding non-country ISO codes helps avoid accidentally comparing countries with aggregates such as continents or the world. It may still include some transcontinental countries according to OWID's classification.
+5. Population denominators and reporting quality: Rates depend on the population denominator and the completeness of vaccination reporting. Small discrepancies between countries may reflect differences in measurement rather than actual differences in coverage.
+6. Duplicate or anomalous observations: The data may include missing values, repeated country-date records, or values outside the expected 0–100 range. These should be checked before plotting; a percentage above 100 should not silently be treated as a valid comparison.
+
+The resulting chart is best interpreted as a comparison of reported primary-course vaccination coverage, not as a ranking of current immunity or vaccine effectiveness.
+
+## 2. Python code
+
+Save this script in the same folder as `owid-covid-data.csv`. It checks the required columns, selects the latest non-missing vaccination rate for each country, reports missing observations, checks for duplicate country-date records, and excludes out-of-range rates before plotting.
+
+```
+from pathlib import Pathimport pandas as pdimport matplotlib.pyplot as plt# --------------------------------------------------# 1. Load the data and validate the required columns# --------------------------------------------------file_path = Path("owid-covid-data.csv")rate_col = "people_fully_vaccinated_per_hundred"df = pd.read_csv(file_path, low_memory=False)required_cols = {    "iso_code",    "continent",    "location",    "date",    rate_col,}missing_cols = required_cols - set(df.columns)if missing_cols:    raise ValueError(        f"The CSV is missing required columns: {sorted(missing_cols)}"    )# Convert date and vaccination rate to appropriate data types.df["date"] = pd.to_datetime(df["date"], errors="coerce")df[rate_col] = pd.to_numeric(df[rate_col], errors="coerce")# --------------------------------------------------# 2. Keep European countries, excluding aggregates# --------------------------------------------------# Standard three-letter ISO codes help exclude OWID aggregate# rows such as continents and the world. Locations without# standard ISO alpha-3 codes, such as OWID_KOS, are also excluded.iso_codes = df["iso_code"].astype("string")
+```
+
+## 3. How to interpret the chart
+
+Each bar represents one country. A longer bar means a higher reported percentage of the population fully vaccinated according to that country's latest usable observation. The date beside each country name indicates when that rate was reported.
+
+Important: The chart intentionally uses different observation dates when necessary. For a strict like-for-like comparison, you could instead select a common date, such as a specified date near the end of the dataset, and compare only countries with usable data on that date. That approach improves date consistency but may exclude more countries.
+
+Also, `people_fully_vaccinated_per_hundred` measures completion of the initial vaccination course as defined in the dataset. It should not be interpreted as the percentage of people currently immune to COVID-19 or protected by up-to-date booster doses.

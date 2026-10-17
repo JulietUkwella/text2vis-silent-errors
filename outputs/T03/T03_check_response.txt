@@ -1,0 +1,5 @@
+Problem: The chart compares countries using their latest available reported cumulative COVID-19 deaths per million people, but those figures may come from different dates. Countries with older reporting dates are therefore compared with countries whose data are more recent, making the ranking potentially misleading.
+
+Additionally, deaths per million measure reported mortality relative to population, not the overall impact of COVID-19. The chart does not account for total deaths, infections, excess mortality, or differences in underreporting between countries.
+
+How to improve it: Compare all African countries on the same specified date, using the latest available data on or before that date, and clearly define “most affected” as either deaths per million, total reported deaths, or another explicit measure.

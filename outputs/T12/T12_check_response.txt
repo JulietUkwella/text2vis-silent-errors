@@ -1,0 +1,9 @@
+Problem: The chart compares the number of people fully vaccinated, not everyone who received a COVID-19 vaccine. The `people_fully_vaccinated` column excludes people who received some but not all doses required by the initial vaccination protocol, so it may not answer the broader question of which countries vaccinated the most people.
+
+There is also a date-comparison problem: `tail(1)` selects each country's latest reported figure independently, so the countries may be compared using data from different dates. A more consistent comparison would use a common date, or clearly identify the reporting date for each country.
+
+To improve the chart:
+
+- Use `people_vaccinated` to rank countries by the number of people who received at least one dose.
+- Keep `people_fully_vaccinated` if the intended question is specifically about completed initial vaccination protocols.
+- Use a common reporting date and retain absolute counts if the goal is to identify the countries that vaccinated the greatest number of people, rather than the highest share of their populations. 【turn668035search0】【turn668035search1】

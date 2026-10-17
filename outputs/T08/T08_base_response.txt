@@ -1,0 +1,14 @@
+The following Python code uses `pandas` to load the CSV, filter the data for Italy, and `matplotlib` to plot total COVID-19 deaths over time.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# Load the COVID-19 datasetdf = pd.read_csv("owid-covid-data.csv")# Filter the data for Italyitaly = df[df["location"] == "Italy"].copy()# Convert dates to datetime format and sort chronologicallyitaly["date"] = pd.to_datetime(italy["date"])italy = italy.sort_values("date")# Plot total COVID-19 deaths over timeplt.figure(figsize=(12, 6))plt.plot(italy["date"], italy["total_deaths"], color="red", linewidth=2)# Add chart labels and titleplt.title("Total COVID-19 Deaths Over Time in Italy")plt.xlabel("Date")plt.ylabel("Total Deaths")plt.grid(True, linestyle="--", alpha=0.5)plt.xticks(rotation=45)plt.tight_layout()# Display the chartplt.show()
+```
+
+### How it works
+
+- Loads the data from `owid-covid-data.csv`.
+- Filters for Italy using the `location` column.
+- Converts and sorts dates so the data appears in chronological order.
+- Plots `total_deaths` against `date`, showing the cumulative number of reported COVID-19 deaths in Italy over time.
+
+Note: Because `total_deaths` is cumulative, the chart generally rises over time. To show how the number of new deaths per day changed instead, replace `italy["total_deaths"]` with `italy["new_deaths"]` in the `plt.plot()` line.

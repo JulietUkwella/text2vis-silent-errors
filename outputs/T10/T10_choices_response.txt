@@ -1,0 +1,42 @@
+## 1. Analytical choices and assumptions
+
+The question sounds straightforward, but the answer depends on how “the most people die” and “which day” are defined. I would use the following choices to identify the day with the highest number of reported COVID-19 deaths in the United States.
+
+| Analytical choice               | My choice                                             | Why                                                                                                                                                                             |
+| ------------------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Measure of deaths               | `new_deaths`                                          | This represents the number of newly reported COVID-19 deaths for a given date. It is the appropriate measure for finding the highest single-day count.                          |
+| Counts or rates                 | Absolute number of deaths, not deaths per million     | The question asks when the most people died, not when the mortality rate was highest relative to population.                                                                    |
+| Daily counts or smoothed counts | Raw daily counts for identifying the peak             | The question asks for a single day. `new_deaths_smoothed` averages deaths over seven days, which is useful for understanding trends but may shift or flatten the apparent peak. |
+| Time period                     | Every date available in the CSV                       | Restricting the data to a particular year or pandemic wave could exclude the actual maximum.                                                                                    |
+| Geographic scope                | The row where `location` equals `"United States"`     | This selects the national-level record rather than individual states, other countries, or worldwide aggregates.                                                                 |
+| Missing values                  | Exclude rows with a missing date or `new_deaths`      | A missing value does not mean zero deaths. Treating it as zero could distort the time series.                                                                                   |
+| Repeated dates                  | Expect one U.S. row per date and check for duplicates | Summing duplicated rows could double-count deaths. Unexpected duplicates should be investigated instead.                                                                        |
+| Negative daily counts           | Retain them                                           | Negative values can occur when previously reported figures are revised. Removing them without investigation would alter the original series unnecessarily.                      |
+| Definition of “died on a day”   | Use the date associated with the reported daily count | The dataset records reported deaths, which are not necessarily the deaths that physically occurred on that exact date.                                                          |
+
+### What could make the chart misleading?
+
+There are four important limitations to keep in mind.
+
+1. Reporting delays and backlogs: A large daily count may reflect deaths reported together after a delay, rather than an unusually large number of deaths occurring on that particular day.
+2. Data revisions: Historical figures can change as authorities correct or update records. Consequently, the peak date might differ between versions of the CSV.
+3. Daily volatility: Raw daily counts can fluctuate considerably because of reporting practices, weekends, and retrospective adjustments. The highest raw value may be less representative of the underlying trend than the surrounding week.
+4. Reported deaths are not the same as total pandemic mortality: The chart measures reported COVID-19 deaths. It does not capture all deaths indirectly associated with the pandemic or establish the actual date of death for every reported case.
+
+For these reasons, I would identify the maximum using `new_deaths` and plot `new_deaths_smoothed` alongside it for context. The smoothed series would not determine the answer.
+
+## 2. Python code
+
+The code below uses pandas to load and filter the CSV, identifies the highest daily count across the entire available U.S. time series, prints the peak date, and creates a matplotlib chart highlighting it.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# --------------------------------------------------# 1. Load the dataset# --------------------------------------------------file_path = "owid-covid-data.csv"df = pd.read_csv(file_path)# Parse dates and convert death counts to numeric values.df["date"] = pd.to_datetime(df["date"], errors="coerce")df["new_deaths"] = pd.to_numeric(    df["new_deaths"], errors="coerce")df["new_deaths_smoothed"] = pd.to_numeric(    df["new_deaths_smoothed"], errors="coerce")# --------------------------------------------------# 2. Select the national-level United States records# --------------------------------------------------us = df.loc[    df["location"].eq("United States")].copy()if us.empty:    raise ValueError(        "No rows found for location = 'United States'. "        "Check the location names in the CSV."    )# Exclude records that cannot be used to identify a peak.us = us.dropna(subset=["date", "new_deaths"])# The dataset is expected to have one row per location/date.# Stop rather than silently double-counting unexpected duplicates.if us["date"].duplicated().any():    duplicates = us.loc[        us["date"].duplicated(keep=False), "date"    ].sort_values()    raise ValueError(        "Duplicate United States dates found. "        f"Investigate these dates before proceeding:\n"        f"{duplicates.to_list()}"    )# Sort chronologically for plotting.us = us.sort_values("date").reset_index(drop=True)
+```
+
+## 3. How to interpret the result
+
+Run the code in the directory containing `owid-covid-data.csv`. The output will display the maximum `new_deaths` value and its corresponding date or dates. The chart will show the raw daily counts, the seven-day smoothed trend, and a red marker at the maximum.
+
+The answer to the question is the date associated with the maximum `new_deaths` value, using the records available in your CSV. I have not calculated a specific date here because the contents of your local file have not been provided.
+
+One final distinction matters: this identifies the day with the highest reported daily count in the dataset, not necessarily the day on which the largest number of people actually died.

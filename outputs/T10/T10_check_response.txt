@@ -1,0 +1,15 @@
+Problem: The code finds the day with the highest reported daily COVID-19 deaths, not necessarily the day on which the most people actually died.
+
+Our World in Data explains that daily death counts generally reflect when deaths were reported, rather than when they occurred. Reporting delays, backlogs, and batches of retrospectively reported deaths can cause an individual day's count to spike artificially.&#x20;
+
+[image](https://www.google.com/s2/favicons?domain=https://ourworldindata.org\&sz=32)
+
+Our World in Data
+
++1
+
+
+
+The code correctly filters for the United States and finds the maximum non-missing value in `new_deaths`. However, this does not establish which day had the most actual deaths.
+
+To improve the analysis, use a dataset that records deaths by date of occurrence to answer the original question. Alternatively, use `new_deaths_smoothed`, which averages reported deaths over seven days, to identify the peak in the trend while reducing the effect of reporting fluctuations. The smoothed measure still does not identify the actual dates on which people died.

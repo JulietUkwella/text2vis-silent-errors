@@ -1,0 +1,47 @@
+## 1. Analytical choices to make before plotting
+
+The question “Which African countries were most affected by COVID-19?” does not have a single definitive answer. A country could have a high number of deaths overall but a lower death rate per person, while another could have a relatively small total number of deaths but a much higher death rate.
+
+For this chart, I would define “most affected” as the African countries with the highest reported cumulative COVID-19 deaths per million people. This focuses on the reported mortality burden relative to population size.
+
+| Analytical choice         | Option chosen                                                                   | Why                                                                                                                                                          |
+| ------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Measure of impact         | `total_deaths_per_million`                                                      | Deaths provide an indicator of severe outcomes, although they do not capture every aspect of the pandemic.                                                   |
+| Totals or rates?          | Rate per million people                                                         | Makes comparisons between countries of different population sizes more meaningful. It does not show which countries had the most deaths in absolute numbers. |
+| Time period               | Latest non-missing observation for each country in the file                     | Uses the most recent reported cumulative death rate available in the supplied CSV. The data dates will be shown alongside country names.                     |
+| Countries to include      | Rows where `continent == "Africa"` and the ISO code does not begin with `OWID_` | Focuses on African countries and excludes OWID regional or other aggregate series, which should not be ranked as countries.                                  |
+| Rows to include           | One latest valid observation per country                                        | `total_deaths_per_million` is cumulative, so summing it across daily rows would incorrectly count the same deaths repeatedly.                                |
+| Missing data              | Exclude countries without a valid death-rate observation                        | Missing values cannot support a ranking. Countries excluded for this reason should not be interpreted as having zero deaths.                                 |
+| Number of countries shown | Top 10                                                                          | Makes the chart readable and focuses attention on the highest reported rates.                                                                                |
+| Chart type                | Horizontal bar chart, ordered from lowest to highest within the top 10          | Makes country names easy to read and supports direct comparison.                                                                                             |
+
+### What could make this chart misleading?
+
+- Different reporting dates: The latest available observation may be from a different date for each country. The code will display the date used for each bar, but the comparison is not a perfectly synchronized snapshot.
+- Underreporting and inconsistent definitions: Some COVID-19 deaths may not have been identified or reported. Countries can differ in death registration, reporting practices, and how COVID-related deaths are classified.
+- Population adjustment is not the whole story: Deaths per million measures reported mortality relative to population, not the total number of deaths, the proportion infected, or the strain on hospitals.
+- Data completeness: Countries with missing or incomplete reporting may be omitted or appear less affected than they actually were.
+- Country size and statistical instability: Rates can be more volatile in countries with small populations. Revisions to relatively few reported deaths can noticeably change their rankings.
+- Cumulative figures can be revised: The latest reported value is not necessarily a final or fully comparable estimate of the true pandemic toll.
+
+A different question would require a different chart. For example, `total_deaths` would show the largest absolute death tolls, while `total_cases_per_million` would compare reported infection rates. The latter is especially sensitive to differences in testing and case detection.
+
+## 2. Python code
+
+The following code loads `owid-covid-data.csv`, selects African countries, obtains each country's latest non-missing cumulative death rate, ranks the countries, and plots the top 10. The observation date appears beside each country name.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# --------------------------------------------------# 1. Load and prepare the data# --------------------------------------------------df = pd.read_csv("owid-covid-data.csv")df["date"] = pd.to_datetime(df["date"], errors="coerce")metric = "total_deaths_per_million"df[metric] = pd.to_numeric(df[metric], errors="coerce")# --------------------------------------------------# 2. Select African countries, excluding aggregates# --------------------------------------------------continent = df["continent"].fillna("").astype(str).str.strip()iso_code = df["iso_code"].fillna("").astype(str).str.strip()africa = df.loc[    continent.eq("Africa")    & iso_code.ne("")    & ~iso_code.str.startswith("OWID_")].copy()# --------------------------------------------------# 3. Find the latest valid observation for each country# --------------------------------------------------# Exclude rows where the date or chosen measure is missing.valid = africa.dropna(subset=["date", metric])# Sort by date and keep one latest record per country.latest = (    valid.sort_values("date")         .drop_duplicates(subset="iso_code", keep="last"))if latest.empty:    raise ValueError(        "No African country records with valid death-rate data were found."    )# --------------------------------------------------# 4. Rank countries and select the top 10# --------------------------------------------------top10 = (
+```
+
+## 3. How to interpret the result
+
+The chart identifies the 10 countries with the highest reported cumulative COVID-19 deaths per million people, based on the latest non-missing observation available for each country in the CSV.
+
+Keep three points in mind when drawing conclusions:
+
+1. A high rate is not the same as the highest total toll. A country with a smaller population may rank highly per million while recording fewer deaths overall.
+2. The dates matter. Check the dates printed beside the country names. For a strict, date-for-date comparison, rerun the analysis using a common cutoff date and include only countries with valid observations on or before that date.
+3. The ranking reflects reported data, not necessarily the true mortality burden. Underreporting, differences in death registration, and missing observations can change the results.
+
+Recommended next step for a broader answer: make a second chart using `total_deaths` to identify the countries with the largest absolute reported death tolls. Comparing that chart with the per-million ranking would distinguish the largest overall impact from the highest population-adjusted mortality.

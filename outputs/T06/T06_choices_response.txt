@@ -1,0 +1,57 @@
+The most defensible approach is to chart the percentage of Africa’s population that was fully vaccinated over time, using the `people_fully_vaccinated_per_hundred` column from Our World in Data (OWID) when its Africa aggregate is available. This avoids confusing the number of vaccine doses with the number of people vaccinated.
+
+## 1. Analytical choices and reasons
+
+1\. What does “fully vaccinated” mean?
+
+Use `people_fully_vaccinated_per_hundred`, which measures the number of people who completed the initial vaccination protocol per 100 people in the population. Do not use `people_vaccinated_per_hundred`, which includes people who received only one or more doses without necessarily completing the protocol.
+
+2\. Should the chart show totals or rates?
+
+Use a percentage, rather than the total number of people vaccinated. A total does not tell us what share of the population was vaccinated.
+
+If calculating the percentage from country-level records, use:
+
+\\[ \text{Share fully vaccinated} = \frac{\text{Total people fully vaccinated}} {\text{Total population represented}} \times 100 \\]
+
+This is a population-weighted calculation. Do not take a simple average of country percentages, because that would give small countries the same weight as large countries.
+
+3\. What time period should be included?
+
+Use the full period available in the CSV, from the earliest usable observation through the latest usable observation. A time-series chart reveals how vaccination coverage changed over time, while the final point answers the question for the latest reported date.
+
+The latest date in the dataset might not represent the current date.
+
+4\. Which rows should be included?
+
+Prefer the rows where `location == "Africa"` and use the regional percentage directly, if that aggregate has usable data. OWID datasets can contain both regional aggregates and individual country records. Summing both would double-count people.
+
+If the Africa aggregate is unavailable, calculate the percentage from rows where `continent == "Africa"`, using the country and territory records that have both vaccination counts and population data. Exclude records that lack either value for that date.
+
+5\. How should missing data be treated?
+
+Do not treat missing vaccination counts as zero. A missing value may mean that a location did not report data, rather than that nobody was vaccinated.
+
+If the fallback country-level calculation is required, use only locations with both values available on each date. This means the set of represented locations may vary over time, which can affect the resulting percentage.
+
+6\. What could make the chart misleading?
+
+- Incomplete reporting: The regional percentage might not fully reflect every country or territory in Africa.
+- Changing coverage: In the country-level fallback, the population represented can change over time as reporting changes.
+- Different reporting dates: The latest observation may not be equally recent across all countries.
+- Population and reporting discrepancies: Reported vaccination totals can occasionally produce percentages above 100%. These should be investigated, not silently corrected.
+- Definition of Africa: The continent field may include territories as well as sovereign countries. The result reflects the locations included in the dataset, not necessarily only independent states.
+
+## 2. Python code using pandas and matplotlib
+
+The following code loads `owid-covid-data.csv`, uses the OWID Africa aggregate where possible, falls back to a population-weighted country-level calculation if necessary, plots the percentage over time, and prints the latest available estimate.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# 1. Load the datasetdf = pd.read_csv("owid-covid-data.csv")# Convert dates and vaccination/population fields to suitable typesdf["date"] = pd.to_datetime(df["date"], errors="coerce")for col in [    "people_fully_vaccinated_per_hundred",    "people_fully_vaccinated",    "population",]:    df[col] = pd.to_numeric(df[col], errors="coerce")# 2. Prefer OWID's regional aggregate for Africaafrica = df.loc[    df["location"].eq("Africa"),    ["date", "people_fully_vaccinated_per_hundred"],].copy()africa = africa.rename(    columns={        "people_fully_vaccinated_per_hundred": "share_pct"
+```
+
+## 3. How to interpret the chart
+
+The y-axis shows the percentage of the represented population that completed the initial COVID-19 vaccination protocol. The final marker and printed output identify the latest available estimate.
+
+Important limitation: If the code uses its country-level fallback, interpret the result as the percentage among the African locations reporting both vaccination counts and population on each date. It may not represent the entire continent, and changing data coverage can create apparent changes that do not reflect vaccination progress alone. The code also does not invent missing values or cap reported percentages at 100%.

@@ -1,0 +1,5 @@
+Problem: The chart uses `people_fully_vaccinated_per_hundred` to represent vaccine rollout, but this measures the percentage of the population fully vaccinated, not the percentage that had received at least one dose. Since vaccination began before people became fully vaccinated, this does not accurately mark the start of the rollout.
+
+Additionally, the chart uses two independent y-axes, which can make the relationship between vaccination coverage and deaths appear stronger or weaker depending on the chosen scales. Even if deaths fell as vaccination coverage increased, this alone does not establish that vaccines caused the decline; reporting patterns, other public-health measures, and the delay before vaccines provide protection also matter.
+
+To improve the analysis, plot first-dose coverage alongside the 7-day average of daily deaths, account for the delay before vaccination provides protection, and treat the chart as evidence of a temporal association rather than proof of causation.

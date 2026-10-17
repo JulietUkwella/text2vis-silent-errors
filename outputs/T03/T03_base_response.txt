@@ -1,0 +1,15 @@
+A useful way to answer “Which African countries were most affected by COVID-19?” is to compare countries by their cumulative reported COVID-19 deaths per million people. This accounts for differences in population size and focuses on the severity of the reported impact rather than simply ranking the largest countries.
+
+Because confirmed cases and deaths depend on testing and reporting practices, it is also helpful to compare total cases per million. The following Python code uses `pandas` to process your CSV and `matplotlib` to create a chart of the 10 African countries with the highest reported deaths per million.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# 1. Load the COVID-19 datasetdf = pd.read_csv("owid-covid-data.csv")df["date"] = pd.to_datetime(df["date"], errors="coerce")# 2. Keep African countries and exclude OWID regional aggregatesafrica = df[    (df["continent"] == "Africa") &    (~df["iso_code"].str.startswith("OWID_", na=False))].copy()# 3. Get the latest available reported death rate for each countrydeaths = africa.dropna(subset=["total_deaths_per_million"])latest_deaths = (    deaths.sort_values("date")    .drop_duplicates(subset="location", keep="last"))# 4. Select the 10 countries with the highest deaths per milliontop10 = latest_deaths.nlargest(10, "total_deaths_per_million")top10 = top10.sort_values("total_deaths_per_million")# 5. Plot a horizontal bar chartplt.figure(figsize=(11, 7))plt.barh(    top10["location"],    top10["total_deaths_per_million"],    color="steelblue")plt.xlabel("Reported cumulative COVID-19 deaths per million people")plt.ylabel("Country")
+```
+
+### How to interpret the chart
+
+- Longer bars indicate more reported cumulative COVID-19 deaths per million people.
+- The printed table shows each country's latest available observation date, which may differ between countries.
+- Limitations: Reported deaths may underestimate the true toll because of differences in testing, death registration, and reporting quality across countries.
+
+This chart measures the reported mortality burden relative to population, rather than the total number of infections. A different ranking could result from comparing total deaths, confirmed cases per million, or excess mortality instead.

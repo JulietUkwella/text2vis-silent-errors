@@ -1,0 +1,7 @@
+Problem: The code compares each country’s latest available cumulative case count, but those values may come from different dates. This means the countries are not necessarily being compared at the same point in time.
+
+To improve the comparison, filter the dataset to a common date before ranking countries, or explicitly report the latest observation date for each country.
+
+There is also a measurement limitation: `total_cases` represents reported confirmed cases, not all actual infections. Differences in testing, case definitions, and reporting practices across countries affect how comparable the totals are.
+
+Excluding aggregate locations with `OWID_` codes and selecting the 10 largest cumulative totals are otherwise reasonable steps for this question.

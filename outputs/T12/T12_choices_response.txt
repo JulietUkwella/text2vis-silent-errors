@@ -1,0 +1,41 @@
+## 1. Analytical choices to make before creating the chart
+
+The question “Which countries vaccinated the most people against COVID?” has several possible interpretations. I would make the following choices.
+
+| Analytical choice        | Decision                                                                                                                                                             | Reason                                                                                                                                                                       |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Measure of vaccination   | Use `people_vaccinated`.                                                                                                                                             | This measures the cumulative number of people who received at least one vaccine dose, rather than the total number of doses administered.                                    |
+| Absolute totals or rates | Use absolute totals.                                                                                                                                                 | The question asks which countries vaccinated the most people, so the number of people is the most direct measure.                                                            |
+| Time period              | Use the latest available non-missing cumulative value for each country.                                                                                              | Vaccination totals accumulate over time, so using the latest reported value gives a useful overall comparison without adding together cumulative counts from multiple dates. |
+| Which rows to include    | Include country and territory entries with three-letter ISO codes, plus Kosovo (`OWID_KOS`). Exclude aggregate entries such as World, continents, and income groups. | Aggregate rows could otherwise appear alongside individual countries and distort the ranking.                                                                                |
+| Missing data             | Ignore rows with missing vaccination counts or invalid dates.                                                                                                        | Missing values cannot provide a reliable ranking.                                                                                                                            |
+| Number of countries      | Display the top 10.                                                                                                                                                  | A horizontal bar chart makes the leading countries easy to compare and keeps country labels readable.                                                                        |
+
+### What could make the chart misleading?
+
+There are several important limitations:
+
+- Population size matters. Countries with larger populations will generally have higher vaccination totals. This does not mean they achieved higher vaccination coverage. For a coverage comparison, use `people_vaccinated_per_hundred` instead.
+- At least one dose is not the same as full vaccination. The selected measure includes people who received only one dose. To compare completed vaccination, use `people_fully_vaccinated`.
+- Reporting dates can differ. One country's latest observation might be much older than another's. The chart will include each country's latest non-missing date in its label to make this easier to see.
+- Reporting may be incomplete. Some countries have missing observations, delayed reporting, or revised historical figures. The latest reported value is not necessarily a perfectly comparable or fully up-to-date count.
+- Countries and territories are not identical categories. The dataset includes some territories as well as countries, so the ranking should be interpreted as a comparison of country/territory entries.
+- Cumulative counts must not be summed over dates. Doing so would count the same vaccinated people repeatedly and produce incorrect totals.
+
+With these decisions, the chart will answer: Which 10 countries or territories have the highest reported cumulative number of people who received at least one COVID-19 vaccine dose?
+
+## 2. Python code
+
+The following code uses pandas to load and clean `owid-covid-data.csv` and matplotlib to create the chart.
+
+```
+import pandas as pdimport matplotlib.pyplot as pltfrom matplotlib.ticker import FuncFormatter# --------------------------------------------------# 1. Load the dataset# --------------------------------------------------file_path = "owid-covid-data.csv"df = pd.read_csv(file_path)# Check that the necessary columns are present.required_columns = {    "iso_code",    "location",    "date",    "people_vaccinated"}missing_columns = required_columns - set(df.columns)if missing_columns:    raise ValueError(        f"The CSV file is missing these columns: {missing_columns}"    )
+```
+
+## 3. How to interpret the result
+
+Each bar represents a country's or territory's latest reported cumulative count of people who received at least one COVID-19 vaccine dose. The longest bar identifies the largest reported count among the included entries.
+
+The date beside each country helps reveal whether the observations are from comparable reporting periods. The values at the ends of the bars use M for millions and B for billions.
+
+One final consideration: if your real goal is to determine which countries performed best at getting their populations vaccinated, a second chart using `people_vaccinated_per_hundred` would be more appropriate. It would compare the share of the population vaccinated rather than rewarding countries simply for having larger populations.

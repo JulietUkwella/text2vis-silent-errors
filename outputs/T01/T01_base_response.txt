@@ -1,0 +1,68 @@
+The code below uses cumulative COVID-19 deaths (`total_deaths`) to identify the 10 hardest-hit countries. It selects each country's latest available record, excludes aggregate entries such as “World,” and plots the results as a horizontal bar chart.
+
+```
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Load the Our World in Data COVID-19 dataset
+df = pd.read_csv("owid-covid-data.csv")
+
+# Convert date to datetime
+df["date"] = pd.to_datetime(df["date"], errors="coerce")
+
+# Keep rows with valid country codes and death counts
+df = df[
+    df["iso_code"].str.startswith(("OWID_"), na=False) == False
+].copy()
+
+df = df.dropna(subset=["date", "total_deaths"])
+
+# Get the latest available record for each country
+latest = (
+    df.sort_values("date")
+      .groupby("location", as_index=False)
+      .tail(1)
+)
+
+# Select the 10 countries with the highest cumulative deaths
+top10 = (
+    latest.nlargest(10, "total_deaths")
+          .sort_values("total_deaths", ascending=True)
+)
+
+# Plot the results
+plt.figure(figsize=(11, 7))
+
+plt.barh(
+    top10["location"],
+    top10["total_deaths"],
+    color="steelblue"
+)
+
+plt.xlabel("Total reported COVID-19 deaths")
+plt.ylabel("Country")
+plt.title("Top 10 Countries by Cumulative COVID-19 Deaths")
+plt.gca().xaxis.set_major_formatter(
+    plt.FuncFormatter(lambda x, _: f"{x:,.0f}")
+)
+
+plt.grid(axis="x", linestyle="--", alpha=0.4)
+plt.tight_layout()
+plt.show()
+
+# Print the rankings and death counts
+print(
+    top10[["location", "date", "total_deaths"]]
+    .sort_values("total_deaths", ascending=False)
+    .to_string(index=False)
+)
+```
+
+### How to interpret the chart
+
+- Metric: Total reported COVID-19 deaths, not daily deaths.
+- Ranking: Countries are ranked by their latest recorded cumulative death count.
+- Why use the latest record? The dataset contains multiple rows for each country, one per date.
+- Limitation: Countries with larger populations may have higher death counts. To compare the impact relative to population size, use `total_deaths_per_million` instead.
+
+Note: The chart reflects the data in your local CSV file. It does not automatically retrieve the latest dataset from Our World in Data.

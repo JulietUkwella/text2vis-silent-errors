@@ -1,0 +1,43 @@
+## 1. Analytical choices
+
+The question “How badly did COVID affect the countries of South America?” can be answered in several ways. To make the comparison meaningful, I would focus on reported COVID-19 deaths per million people.
+
+### Choices and rationale
+
+| Analytical choice  | Option selected                                                                   | Why                                                                                                                                             |
+| ------------------ | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Measure of impact  | `total_deaths_per_million`                                                        | Deaths measure a severe outcome of the pandemic. The per-million rate accounts for differences in population size.                              |
+| Total or rate      | Rate per million people                                                           | Comparing raw death totals would tend to put more populous countries, such as Brazil, at the top simply because they have more people.          |
+| Time period        | Cumulative deaths from the start of the pandemic through a common comparison date | Cumulative deaths capture the overall reported mortality burden, rather than just one wave. A common date makes the comparison fairer.          |
+| Countries included | The 12 sovereign countries of South America                                       | An explicit country list avoids accidentally including regional aggregates or dependent territories.                                            |
+| Rows included      | One cumulative observation per country                                            | Cumulative totals should not be added across dates. Instead, use the relevant value on the comparison date.                                     |
+| Missing values     | Treat missing values as unavailable, not zero                                     | A missing value does not mean that a country had no COVID deaths. Countries with no usable data should be identified rather than assigned zero. |
+| Chart type         | Sorted horizontal bar chart                                                       | It makes country names easy to read and makes it straightforward to rank countries by reported deaths per million.                              |
+
+The 12 countries included are Argentina, Bolivia, Brazil, Chile, Colombia, Ecuador, Guyana, Paraguay, Peru, Suriname, Uruguay, and Venezuela.
+
+### What could make the chart misleading?
+
+- Deaths may be underreported. Countries have differed in testing, death certification, reporting practices, and the completeness of their data. Reported deaths are not necessarily the true number of deaths caused by the pandemic.
+- Population adjustment does not account for everything. Deaths per million adjusts for population size, but not for differences in age structure, health systems, vaccination coverage, or other factors that affect mortality.
+- The comparison date matters. Countries may have gaps or different end dates in their data. The code below finds the latest date on which all countries with usable observations have a non-missing value. This improves comparability but could mean using an earlier date than the latest date in the file.
+- Missing data are important. A country with no usable death-rate data cannot be fairly ranked. The code reports countries that cannot be included.
+- COVID impact means more than deaths. This chart measures reported cumulative mortality, not infections, long COVID, hospital strain, economic damage, or excess mortality from all causes.
+
+The result should therefore be interpreted as a comparison of reported cumulative COVID-19 mortality, rather than a complete measure of every country’s experience of the pandemic.
+
+## 2. Python code
+
+The following code loads `owid-covid-data.csv` using pandas and creates a sorted horizontal bar chart using matplotlib. It uses a common comparison date when possible. If there is no date with valid observations for every country with usable data, it falls back to each country's latest available observation and shows the date alongside its name.
+
+```
+import pandas as pdimport matplotlib.pyplot as plt# --------------------------------------------------# 1. Load the dataset# --------------------------------------------------file_path = "owid-covid-data.csv"df = pd.read_csv(file_path, parse_dates=["date"])# Ensure the death-rate column contains numeric valuesmetric = "total_deaths_per_million"df[metric] = pd.to_numeric(df[metric], errors="coerce")# --------------------------------------------------# 2. Select the 12 sovereign countries of South America# --------------------------------------------------south_america_countries = [    "Argentina",    "Bolivia",    "Brazil",    "Chile",    "Colombia",    "Ecuador",    "Guyana",    "Paraguay",    "Peru",    "Suriname",    "Uruguay",    "Venezuela",]# Use the explicit country list to exclude aggregate rows# such as "World" or regional summaries.sa = df.loc[    df["location"].isin(south_america_countries),    ["location", "date", metric]].copy()if sa.empty:    raise ValueError(        "No matching South American country rows were found. "        "Check the file path and the country names in the dataset."    )# Keep rows with both a valid date and a usable death-rate value.valid = sa.dropna(subset=["date", metric]).copy()countries_with_data = [
+```
+
+## 3. How to interpret the chart
+
+Each bar represents a country's cumulative number of reported COVID-19 deaths per million people. Countries with longer bars had higher reported cumulative mortality rates in the selected observations.
+
+For example, a value of 500 deaths per million means approximately 500 reported deaths for every million people in the population denominator; it does not mean that 500 people out of every million were necessarily infected.
+
+A country at the top of the ranking had a higher reported mortality rate, but that alone does not prove that COVID was intrinsically more dangerous there. Differences in demographics, public health conditions, death reporting, and data completeness may also explain some of the variation.
